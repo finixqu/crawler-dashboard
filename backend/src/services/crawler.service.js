@@ -1,7 +1,7 @@
 import { spawnProcess } from "./process.service.js";
 import { crawlerConfig } from "../config/crawler.config.js";
 
-function startTiktokCrawler ({ projectId, since, until }) {
+function buildTiktokCommand ({ projectId, since, until }) {
 
     if (!projectId) throw new Error('Wajib Isi ID')
 
@@ -9,6 +9,7 @@ function startTiktokCrawler ({ projectId, since, until }) {
     if (!since) throw new Error('Wajib isi since')
 
     if (!until) throw new Error('Wajib isi until')
+
     const config = crawlerConfig.tiktok
 
     const args = [
@@ -44,8 +45,12 @@ function startTiktokCrawler ({ projectId, since, until }) {
         String(projectId)
     ]
 
-    return spawnProcess('docker', args)
+    //kita buat outputnya ini
+    return {
+        command: docker,
+        args
+    }
 
 }
 
-export { startTiktokCrawler }
+export { buildTiktokCommand }

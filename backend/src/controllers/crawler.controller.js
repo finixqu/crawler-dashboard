@@ -1,4 +1,4 @@
-import { startTiktokCrawler } from "../services/crawler.service.js";
+import { buildTiktokCommand } from "../services/crawler.service.js";
 
 async function startCrawler (req, res){
     try {

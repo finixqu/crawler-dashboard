@@ -1,5 +1,4 @@
 import { spawn } from 'node:child_process'
-import { kill } from 'node:process'
 
 const executeTmux = (args) => {
     return new Promise((resolve, reject) => {
