@@ -28,8 +28,12 @@ const startProjectCrawler = async (jobId) => {
         //ambil command untuk proses
         const commandProses = [
             crawlerCommand.command,
-            crawlerCommand.args
-        ]
+            ...crawlerCommand.args
+        ].join(' ')
+
+
+        //buat sesi tmux
+        await tmuxService.createSession(sessionName)
 
         //kirim ke tmux
         await tmuxService.sendCommand(

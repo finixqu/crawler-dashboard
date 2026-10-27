@@ -47,7 +47,7 @@ function buildTiktokCommand ({ projectId, since, until }) {
 
     //kita buat outputnya ini
     return {
-        command: docker,
+        command: 'docker',
         args
     }
 
