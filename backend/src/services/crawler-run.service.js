@@ -39,12 +39,16 @@ const startProjectCrawler = async (jobId) => {
         ].join(' ')
 
 
+        //agar output masuk ke file project.log
+        const commandDenganLog = `${commandProses} 2>&1 | tee -a "${log.logPath}"`
+
+
         //tandai job berjalan
         await jobRepository.updateStarting(
             job.id,
             null,
             null,
-            commandProses
+            commandDenganLog
         )
 
 
@@ -54,7 +58,7 @@ const startProjectCrawler = async (jobId) => {
         //kirim ke tmux
         await tmuxService.sendCommand(
             sessionName,
-            commandProses
+            commandDenganLog
         )
 
         //update sesion di repo menjadi running
@@ -63,7 +67,7 @@ const startProjectCrawler = async (jobId) => {
         return {
             jobId: job.id,
             sessionName,
-            command: commandProses
+            command: commandDenganLog
         }
 
     } catch (err) {
