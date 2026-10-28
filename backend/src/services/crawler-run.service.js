@@ -40,7 +40,7 @@ const startProjectCrawler = async (jobId) => {
 
 
         //agar output masuk ke file project.log
-        const commandDenganLog = `${commandProses} 2>&1 | tee -a "${log.logPath}"`
+        const commandDenganLog = `set -o pipefail ${commandProses} 2>&1 | tee -a "${log.logPath}" EXIT ${PIPESTATUS[0]}`
 
 
         //tandai job berjalan
@@ -63,6 +63,26 @@ const startProjectCrawler = async (jobId) => {
 
         //update sesion di repo menjadi running
         await jobRepository.updateRunning(job.id)
+
+        monitorJob(job.id, sessionName)
+        //digunakan untuk mengecek status tmux yg aktif, apakah akan berhasil atau gagal
+        const monitorJob = async (jobId, sessionName) => {
+            try {
+                await tmuxService.waitForsession(sessionName)
+
+                await jobRepository.updateFinished(
+                    jobId,
+                    'Success',
+                )
+            } catch ( err ) {
+                await jobRepository.updateFinished(
+                    jobid,
+                    'Failed',
+                    err.message
+                )
+                throw err;
+            }
+        }
 
         return {
             jobId: job.id,

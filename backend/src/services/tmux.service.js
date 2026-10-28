@@ -73,6 +73,22 @@ const hasSession = async (sessionName) => {
 }
 
 
+//untuk menunggu
+const waitForsession = async (sessionName, interval = 2000) => {
+    while (true) {
+        const exist = hasSession(sessionName)
+
+        if (!exist) {
+            return
+        }
+
+        await new Promise((resolve) => {
+            setTimeout(resolve, interval)
+        })
+    }
+}
+
+
 //close sesi
 const killSession = async (sessionName) => {
     return executeTmux([
@@ -97,6 +113,7 @@ const sendCommand = async (sessionName, command) => {
 export default {
     createSession,
     hasSession,
+    waitForsession,
     killSession,
     sendCommand
 }
