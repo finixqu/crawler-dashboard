@@ -129,7 +129,7 @@ const findAll = async (status = null, limit = 50, offset = 0) => {
       cj.finished_at,
       cj.created_at,
 
-      cp.name AS platform
+      cp.name AS platform,
       cp.display_name AS platform_name
     
     FROM crawler_jobs cj
@@ -152,10 +152,10 @@ const findAll = async (status = null, limit = 50, offset = 0) => {
 
   sql += `
     ORDER BY cj.created_at DESC
-    LIMIT ${limit} OFFSET ${offset}
+    LIMIT ${LIMIT} OFFSET ${OFFSET}
   `
 
-  const [rows] = await db.execute(sql, [params])
+  const [rows] = await db.execute(sql, params)
 
   return rows
 }

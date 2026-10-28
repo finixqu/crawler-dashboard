@@ -1,5 +1,4 @@
 import jobRepository from "../repositories/job.repository.js";
-import sessionRepository from "../repositories/session.repository.js";
 import crawlerService from "./crawler.service.js"
 import tmuxService from "./tmux.service.js";
 
@@ -11,9 +10,12 @@ const startProjectCrawler = async (jobId) => {
     if (!job) throw new Error("Job tidak ada")
 
     const sessionName = `crawler-job-${job.id}`
+
+    const sessionExist = await tmuxService.hasSession(sessionName)
+
+    if (sessionExist) throw new Error(`Tmux session ${sessionName} masih aktif`)
     
-    //simpan sesion di database
-    const sessionId = await sessionRepository.create(Number(jobId), sessionName)
+
 
     try {
 
@@ -32,6 +34,15 @@ const startProjectCrawler = async (jobId) => {
         ].join(' ')
 
 
+        //tandai job berjalan
+        await jobRepository.updateStarting(
+            job.id,
+            null,
+            null,
+            commandProses
+        )
+
+
         //buat sesi tmux
         await tmuxService.createSession(sessionName)
 
@@ -42,18 +53,19 @@ const startProjectCrawler = async (jobId) => {
         )
 
         //update sesion di repo menjadi running
-        await sessionRepository.updateRunning(sessionId)
+        await jobRepository.updateRunning(sessionId)
 
         return {
-            job,
-            sessionId,
-            sessionName
+            jobId: job.id,
+            sessionName,
+            command: commandProses
         }
 
     } catch (err) {
-        await sessionRepository.updateFinished(
-            sessionId,
-            'failed'
+        await jobRepository.updateFinished(
+            job.id,
+            'failed',
+            err.message
         )
 
         throw err
