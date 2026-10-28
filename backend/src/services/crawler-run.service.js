@@ -1,6 +1,7 @@
 import jobRepository from "../repositories/job.repository.js";
 import crawlerService from "./crawler.service.js"
 import tmuxService from "./tmux.service.js";
+import logService from "./log.service.js";
 
 const startProjectCrawler = async (jobId) => {
 
@@ -25,6 +26,10 @@ const startProjectCrawler = async (jobId) => {
             since: job.since,
             until: job.until
         })
+
+
+        //buat log
+        const log = await logService.createJobLog(job.project_id)
 
 
         //ambil command untuk proses

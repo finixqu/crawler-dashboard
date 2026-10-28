@@ -1,24 +1,24 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-import logRepository from '../repositories/log.repository'
+// import logRepository from '../repositories/log.repository.js'
 
 const LOG_BASE_PATH = '/home/ivohaki/backdate/dashboard-logs'
 
-const createJobLog = async (jobId) => {
+const createJobLog = async (projectId) => {
 
-    const jobDirectory = path.join(JOB_BASE_PATH, `job-${jobId}`)
+    if(!projectId) throw new Error('Project ID Wajib Diisi')
 
     await fs.mkdir(
-        jobDirectory,
+        LOG_BASE_PATH,
         {
             recursive: true
         }
     )
 
     const logPath = path.join(
-        jobDirectory,
-        'crawler.log'
+        LOG_BASE_PATH,
+        `${projectId}.log`
     )
     
     await fs.writeFile(
@@ -29,13 +29,7 @@ const createJobLog = async (jobId) => {
         }
     )
 
-    const logId = await logRepository.create({
-        jobId,
-        logPath,
-    })
-
     return {
-        logId,
         logPath
     }
 }
