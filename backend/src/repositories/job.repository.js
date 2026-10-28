@@ -141,14 +141,14 @@ const findAll = async (status = null, limit = 50, offset = 0) => {
 
   if(status){
     sql += `
-      WHERE status = ?
+      WHERE cj.status = ?
     `
 
     params.push(status)
   }
 
-  const LIMIT = Number.isNaN(Number(limit)) || 50
-  const OFFSET = Number.isNaN(Number(offset)) || 0
+  const LIMIT = Number.isNaN(Number(limit)) ? Number(limit) : 50
+  const OFFSET = Number.isNaN(Number(offset)) ? Number(offset) : 0
 
   sql += `
     ORDER BY cj.created_at DESC

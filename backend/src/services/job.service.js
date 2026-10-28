@@ -45,6 +45,12 @@ const createProjectJob = async ({ platformId, projectId, since, until}) => {
 
 }
 
+
+const findAllJobs = async () => {
+    return jobRepository.findAll()
+}
+
 export default {
-    createProjectJob
+    createProjectJob,
+    findAllJobs
 }

@@ -31,7 +31,31 @@ const createProjectJob = async (req, res) => {
 }
 
 
+const getJobs = async (req, res) => {
+    try {
+        const jobs = await jobService.findAllJobs()
+
+        if(!jobs) throw new error('Ada Kesalahan')
+        
+        return res.json({
+            success: true,
+            message: "Data Ditemukan",
+            data: jobs
+        })
+    } catch (err) {
+        console.error(err)
+
+        return res.status(500).json({
+            success: false,
+            message: "data error",
+            data: []
+        })
+    }
+}
+
+
 
 export default {
-    createProjectJob
+    createProjectJob,
+    getJobs
 }
