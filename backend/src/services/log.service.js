@@ -3,7 +3,7 @@ import path from 'node:path'
 
 // import logRepository from '../repositories/log.repository.js'
 
-const LOG_BASE_PATH = '/home/ivohaki/backdate/dashboard-logs'
+const LOG_BASE_PATH = '/home/ivohaki/backdate/crawler-dashboard/dashboard-logs'
 
 const createJobLog = async (projectId) => {
 
