@@ -53,7 +53,7 @@ const startProjectCrawler = async (jobId) => {
         )
 
         //update sesion di repo menjadi running
-        await jobRepository.updateRunning(sessionId)
+        await jobRepository.updateRunning(job.id)
 
         return {
             jobId: job.id,
