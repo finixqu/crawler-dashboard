@@ -72,7 +72,7 @@ const loadPlatforms = async () => {
 //ambil daftar jobs
 const loadJobs = async (silent = false) => {
 
-  if (JobRequestProgres) return
+  if (JobRequestProgres.value) return
 
   JobRequestProgres.value = true
 
