@@ -5,6 +5,7 @@ import getPlatforms from '../services/platform.service.js'
 import jobServices from '@/services/job.services.js'
 
 
+
 const platforms = ref([])
 
 const loadingPlatforms = ref(false)
@@ -58,80 +59,94 @@ async function loadPlatforms() {
 
 async function submitJob() {
   errorMessage.value = ''
-
   successMessage.value = ''
 
-
+  // Validasi form
   if (!form.value.platformId) {
     errorMessage.value = 'Silakan pilih platform.'
     return
   }
-
 
   if (!form.value.projectId) {
     errorMessage.value = 'Project ID wajib diisi.'
     return
   }
 
-
   if (!form.value.since) {
     errorMessage.value = 'Since wajib diisi.'
     return
   }
-
 
   if (!form.value.until) {
     errorMessage.value = 'Until wajib diisi.'
     return
   }
 
-
   if (new Date(form.value.since) > new Date(form.value.until)) {
-    errorMessage.value =
-      'since tidak boleh lebih besar dari until.'
-
+    errorMessage.value = 'Since tidak boleh lebih besar dari Until.'
     return
   }
 
+  // Untuk sementara, runner yang tersedia hanya TikTok (ID 1).
+  if (Number(form.value.platformId) !== 1) {
+    errorMessage.value =
+      'Saat ini crawler yang dapat dijalankan hanya TikTok.'
+    return
+  }
+
+  let createdJobId = null
 
   try {
-
     submitting.value = true
 
-    // Untuk sementara hanya simulasi.
-    // API job akan kita buat pada langkah berikutnya.
-
-    const response = await jobServices.createProjectJob({
+    // 1. Buat job di backend.
+    const createResponse = await jobServices.createProjectJob({
       platformId: Number(form.value.platformId),
       projectId: form.value.projectId,
       since: form.value.since,
-      until: form.value.until
+      until: form.value.until,
     })
 
+    if (!createResponse.success || !createResponse.data?.id) {
+      throw new Error(
+        createResponse.message || 'Gagal membuat job.'
+      )
+    }
 
+    createdJobId = createResponse.data.id
 
-    await new Promise(resolve => {
-      setTimeout(resolve, 500)
-    })
+    // 2. Jalankan crawler menggunakan ID job yang baru dibuat.
+    const startResponse = await jobServices.startCrawler(createdJobId)
 
-    console.log(response)
+    if (!startResponse.success) {
+      throw new Error(
+        startResponse.message || 'Gagal memulai crawler.'
+      )
+    }
 
-    if(!response.success) throw new Error("Gagal membuat")
+    // 3. Tampilkan hasil.
+    successMessage.value =
+      `Job #${createdJobId} berhasil dibuat dan crawler berhasil dimulai.`
 
-
-    successMessage.value = `Job #${response.data.id} Berhasil Dibuat`
   } catch (error) {
-
     console.error(error)
 
-    errorMessage.value = error.response?.data?.message || "Terjadi Error"
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      'Terjadi kesalahan.'
+
+    if (createdJobId !== null) {
+      errorMessage.value =
+        `Job #${createdJobId} sudah dibuat, tetapi crawler gagal dimulai: ${message}`
+    } else {
+      errorMessage.value = message
+    }
+
   } finally {
-
     submitting.value = false
-
   }
 }
-
 
 function resetForm() {
   form.value = {
