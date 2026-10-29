@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import getPlatforms from '@/services/platform.service.js'
 import jobServices from '@/services/job.services'
 
@@ -11,6 +11,10 @@ const jobsLoading = ref(false)
 
 const error = ref(null)
 const jobsError = ref(null)
+const startingJobIds = ref([])
+const startCrawlerError = ref('')
+let refreshTimer = null
+let jobsRequestInProgress = false
 
 
 //jumlah data job dari backend
@@ -58,25 +62,72 @@ const loadPlatforms = async () => {
 }
 
 //ambil daftar jobs
-const loadJobs = async () => {
+const loadJobs = async (silent = false) => {
+  // Hindari request bertumpuk ketika auto-refresh berjalan.
+  if (jobsRequestInProgress) return
+
+  jobsRequestInProgress = true
+
   try {
-    jobsLoading.value = true
-    jobsError.value = null
+    if (!silent) {
+      jobsLoading.value = true
+    }
+    jobsError.value = ''
 
     const response = await jobServices.getJobs()
 
-    if(!response.success) {
-      throw new Error (response.message || "Gagal Memuat Job")  
+    if (!response.success) {
+      throw new Error(response.message || 'Gagal memuat job.')
     }
 
     jobs.value = response.data || []
-
   } catch (err) {
     console.error('Gagal memuat job:', err)
-    jobsError.value = err.response?.data?.message || err.message || "gagal memuat job"
-
+    jobsError.value =
+      err.response?.data?.message ||
+      err.message ||
+      'Gagal memuat job.'
   } finally {
-    jobsLoading.value = false
+    jobsRequestInProgress = false
+    if (!silent) {
+      jobsLoading.value = false
+    }
+  }
+}
+
+// Runner crawler saat ini hanya mendukung TikTok (platform_id = 1).
+const canStartCrawler = (job) => {
+  return Number(job.platform_id) === 1 &&
+    ['pending', 'failed'].includes(job.status)
+}
+
+const startJobCrawler = async (job) => {
+  if (!canStartCrawler(job) || startingJobIds.value.includes(job.id)) {
+    return
+  }
+
+  startingJobIds.value = [...startingJobIds.value, job.id]
+  startCrawlerError.value = ''
+
+  try {
+    const response = await jobServices.startCrawler(job.id)
+
+    if (!response.success) {
+      throw new Error(response.message || 'Gagal memulai crawler.')
+    }
+
+    // Perbarui status setelah API menerima permintaan start.
+    await loadJobs()
+  } catch (err) {
+    console.error('Gagal memulai crawler:', err)
+    startCrawlerError.value =
+      err.response?.data?.message ||
+      err.message ||
+      `Gagal memulai crawler untuk job #${job.id}.`
+  } finally {
+    startingJobIds.value = startingJobIds.value.filter(id => id !== job.id)
+    // Ambil status terbaru juga jika request start mengalami error.
+    await loadJobs(true)
   }
 }
 
@@ -130,6 +181,18 @@ const statusClass = (status) => {
 onMounted(() => {
   loadPlatforms()
   loadJobs()
+
+  // Sinkronkan status job setiap 5 detik selama Dashboard terbuka.
+  refreshTimer = setInterval(() => {
+    loadJobs(true)
+  }, 5000)
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 
 
@@ -279,10 +342,17 @@ onMounted(() => {
           type="button"
           class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800"
           :disabled="jobsLoading"
-          @click="loadJobs"
+          @click="loadJobs()"
         >
           {{ jobsLoading ? 'Memuat...' : 'Refresh' }}
         </button>
+      </div>
+
+      <div
+        v-if="startCrawlerError"
+        class="border-b border-red-900/60 bg-red-950/30 px-5 py-3 text-sm text-red-300"
+      >
+        {{ startCrawlerError }}
       </div>
 
       <!-- Loading -->
@@ -362,6 +432,10 @@ onMounted(() => {
               <th class="px-5 py-3 font-medium">
                 Dibuat
               </th>
+
+              <th class="px-5 py-3 font-medium">
+                Aksi
+              </th>
             </tr>
           </thead>
 
@@ -402,6 +476,33 @@ onMounted(() => {
 
               <td class="whitespace-nowrap px-5 py-4 text-slate-400">
                 {{ formatDate(job.created_at) }}
+              </td>
+
+              <td class="whitespace-nowrap px-5 py-4">
+                <button
+                  v-if="canStartCrawler(job)"
+                  type="button"
+                  class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="startingJobIds.includes(job.id)"
+                  @click="startJobCrawler(job)"
+                >
+                  {{ startingJobIds.includes(job.id) ? 'Memulai...' : 'Start Crawler' }}
+                </button>
+
+                <span
+                  v-else-if="['pending', 'failed'].includes(job.status) && Number(job.platform_id) !== 1"
+                  class="text-xs text-slate-500"
+                  title="Runner saat ini hanya mendukung TikTok."
+                >
+                  Belum didukung
+                </span>
+
+                <span
+                  v-else
+                  class="text-xs text-slate-600"
+                >
+                  -
+                </span>
               </td>
             </tr>
           </tbody>
