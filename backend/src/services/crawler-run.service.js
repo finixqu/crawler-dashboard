@@ -92,9 +92,10 @@ const startProjectCrawler = async (jobId) => {
             'set -o pipefail',
             `${commandProses} 2>&1 | tee -a "${log.logPath}"`,
             'exit_code=$?',
-            `printf '%s\\n' "$exit_code" > "$(exitFile)"`,
+            `printf '%s\\n' "$exit_code" > "${exitFile}"`,
             'exit "$exit_code"' 
         ].join('; ')
+
 
         //tandai job berjalan
         await jobRepository.updateStarting(

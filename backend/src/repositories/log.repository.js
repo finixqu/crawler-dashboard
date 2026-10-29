@@ -32,7 +32,7 @@ const updatePosition = async (id, position) => {
     const sql = `
         UPDATE crawler_logs
         SET 
-            last_positions = ?
+            last_position = ?
         WHERE id = ?
     `
     const [result] = await db.execute(sql, [positon])

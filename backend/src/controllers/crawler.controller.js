@@ -5,10 +5,10 @@ async function startCrawler (req, res){
     try {
         const jobId  = Number(req.body.jobId)
         
-        if (!jobId) {
-            return res.json({
+        if (!Number.isInteger(jobId) || jobId <= 0) {
+            return res.status(400).json({
                 success: false,
-                message: "job id wajib di isi"
+                message: "jobId wajib di isi"
             })
         }
 
@@ -16,17 +16,17 @@ async function startCrawler (req, res){
 
         if(!result) throw new Error('process gagal')
         
-        return res.json({
+        return res.status(202).json({
             success: true,
             message: "data berhasil di process",
-            pid: result
+            data: result
         })
     } catch (err) {
         console.error(err)
 
-        return res.json({
+        return res.status(500).json({
             success: false,
-            message: err.message
+            message: err.message || "Gagal Memulai Crawler"
         })
     }
 }

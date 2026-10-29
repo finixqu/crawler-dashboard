@@ -147,10 +147,20 @@ const findAll = async (status = null, limit = 50, offset = 0) => {
     params.push(status)
   }
 
-  const LIMIT = Number.isNaN(Number(limit)) ? 50 :  Number(limit) 
-  const OFFSET = Number.isNaN(Number(offset)) ?  0 : Number(offset)
+  const parsedLimit = Number(limit)
+  const parsedOffset = Number(offset)
 
-    sql += `
+  const LIMIT =
+      Number.isInteger(parsedLimit) && parsedLimit > 0
+          ? Math.min(parsedLimit, 50)
+          : 50
+
+  const OFFSET =
+      Number.isInteger(parsedOffset) && parsedOffset >= 0
+          ? parsedOffset
+          : 0
+
+  sql += `
     ORDER BY cj.created_at DESC
     LIMIT ${LIMIT} OFFSET ${OFFSET}
   `
