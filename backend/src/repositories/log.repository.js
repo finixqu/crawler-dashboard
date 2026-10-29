@@ -1,4 +1,4 @@
-import db from '../config/database/js'
+import db from '../config/database.js'
 
 const create = async ({jobId, logPath}) => {
     const sql = `
@@ -35,7 +35,7 @@ const updatePosition = async (id, position) => {
             last_positions = ?
         WHERE id = ?
     `
-    const result = await db.execute(sql, [positon])
+    const [result] = await db.execute(sql, [positon])
     return result
 }
 

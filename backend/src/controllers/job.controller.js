@@ -22,10 +22,10 @@ const createProjectJob = async (req, res) => {
         })
     } catch (err) {
         console.error(err)
-        res.json({
+        res.status(400).json({
             success: false,
-            message: "data tidak ditemukan",
-            data: []
+            message: err.message || "gagal membuat job",
+            data: null
         })
     }
 }
@@ -35,7 +35,7 @@ const getJobs = async (req, res) => {
     try {
         const jobs = await jobService.findAllJobs()
 
-        if(!jobs) throw new error('Ada Kesalahan')
+        if(!jobs) throw new Error('gagal mencari data')
         
         return res.json({
             success: true,

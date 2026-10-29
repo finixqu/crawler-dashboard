@@ -5,7 +5,7 @@ import path from 'node:path'
 
 const LOG_BASE_PATH = '/home/ivohaki/backdate/crawler-dashboard/dashboard-logs'
 
-const createJobLog = async (projectId) => {
+const createJobLog = async (projectId, jobId) => {
 
     if(!projectId) throw new Error('Project ID Wajib Diisi')
 
@@ -18,7 +18,7 @@ const createJobLog = async (projectId) => {
 
     const logPath = path.join(
         LOG_BASE_PATH,
-        `${projectId}.log`
+        `job-${jobId}-project-${projectId}.log`
     )
     
     await fs.writeFile(
