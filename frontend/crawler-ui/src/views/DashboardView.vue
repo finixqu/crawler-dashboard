@@ -11,11 +11,19 @@ const jobsLoading = ref(false)
 
 const error = ref(null)
 const jobsError = ref(null)
-const startingJobIds = ref([])
-const startCrawlerError = ref('')
-let refreshTimer = null
-let jobsRequestInProgress = false
 
+
+// untuk memulai/mengulang job yang pending/gagal 
+const startingJobIds = ref([])
+
+//menyimpan error untuk yang dimulai ulang
+const startCrawlerError = ref('')
+
+//menyimpan timer
+let refreshTimer = null
+
+//agar data tidak bertumpuk
+let JobRequestProgres = ref(false)
 
 //jumlah data job dari backend
 const stats = computed(() => {
@@ -63,15 +71,17 @@ const loadPlatforms = async () => {
 
 //ambil daftar jobs
 const loadJobs = async (silent = false) => {
-  // Hindari request bertumpuk ketika auto-refresh berjalan.
-  if (jobsRequestInProgress) return
 
-  jobsRequestInProgress = true
+  if (JobRequestProgres) return
+
+  JobRequestProgres.value = true
 
   try {
+
     if (!silent) {
       jobsLoading.value = true
     }
+
     jobsError.value = ''
 
     const response = await jobServices.getJobs()
@@ -88,45 +98,59 @@ const loadJobs = async (silent = false) => {
       err.message ||
       'Gagal memuat job.'
   } finally {
-    jobsRequestInProgress = false
-    if (!silent) {
+    JobRequestProgres.value = false
+
+    if(!silent) {
       jobsLoading.value = false
     }
   }
 }
 
-// Runner crawler saat ini hanya mendukung TikTok (platform_id = 1).
 const canStartCrawler = (job) => {
   return Number(job.platform_id) === 1 &&
     ['pending', 'failed'].includes(job.status)
 }
 
+// Memulai crawler untuk job yang dipilih.
 const startJobCrawler = async (job) => {
-  if (!canStartCrawler(job) || startingJobIds.value.includes(job.id)) {
+  if (
+    !canStartCrawler(job) ||
+    startingJobIds.value.includes(job.id)
+  ) {
     return
   }
 
-  startingJobIds.value = [...startingJobIds.value, job.id]
+  startingJobIds.value = [
+    ...startingJobIds.value,
+    job.id
+  ]
+
   startCrawlerError.value = ''
 
   try {
     const response = await jobServices.startCrawler(job.id)
 
     if (!response.success) {
-      throw new Error(response.message || 'Gagal memulai crawler.')
+      throw new Error(
+        response.message || 'Gagal memulai crawler.'
+      )
     }
 
-    // Perbarui status setelah API menerima permintaan start.
+    // Ambil status terbaru setelah permintaan start berhasil.
     await loadJobs()
   } catch (err) {
     console.error('Gagal memulai crawler:', err)
+
     startCrawlerError.value =
       err.response?.data?.message ||
       err.message ||
       `Gagal memulai crawler untuk job #${job.id}.`
   } finally {
-    startingJobIds.value = startingJobIds.value.filter(id => id !== job.id)
-    // Ambil status terbaru juga jika request start mengalami error.
+
+    startingJobIds.value =
+      startingJobIds.value.filter(id => id !== job.id)
+
+    // Ambil status terbaru setelah proses start selesai.
     await loadJobs(true)
   }
 }
@@ -182,11 +206,11 @@ onMounted(() => {
   loadPlatforms()
   loadJobs()
 
-  // Sinkronkan status job setiap 5 detik selama Dashboard terbuka.
   refreshTimer = setInterval(() => {
     loadJobs(true)
   }, 5000)
 })
+
 
 onUnmounted(() => {
   if (refreshTimer) {
@@ -194,7 +218,6 @@ onUnmounted(() => {
     refreshTimer = null
   }
 })
-
 
 </script>
 
