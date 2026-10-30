@@ -693,30 +693,40 @@ onUnmounted(() => {
               </td>
 
               <td class="whitespace-nowrap px-5 py-4">
-                <button
-                  v-if="canStartCrawler(job)"
-                  type="button"
-                  class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="startingJobIds.includes(job.id)"
-                  @click="startJobCrawler(job)"
-                >
-                  {{ startingJobIds.includes(job.id) ? 'Memulai...' : 'Start Crawler' }}
-                </button>
+                <div class="flex items-center gap-2">
 
-                <span
-                  v-else-if="['pending', 'failed'].includes(job.status) && Number(job.platform_id) !== 1"
-                  class="text-xs text-slate-500"
-                  title="Runner saat ini hanya mendukung TikTok."
-                >
-                  Belum didukung
-                </span>
+                  <!-- Start -->
+                  <button
+                    v-if="canStartCrawler(job)"
+                    type="button"
+                    class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+                    :disabled="startingJobIds.includes(job.id)"
+                    @click="startJobCrawler(job)"
+                  >
+                    {{ startingJobIds.includes(job.id) ? 'Memulai...' : 'Start' }}
+                  </button>
 
-                <span
-                  v-else
-                  class="text-xs text-slate-600"
-                >
-                  -
-                </span>
+                  <!-- Stop -->
+                  <button
+                    v-if="canStopCrawler(job)"
+                    type="button"
+                    class="rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-50"
+                    :disabled="stoppingJobIds.includes(job.id)"
+                    @click="stopJobCrawler(job)"
+                  >
+                    {{ stoppingJobIds.includes(job.id) ? 'Stopping...' : 'Stop' }}
+                  </button>
+
+                  <!-- Log -->
+                  <button
+                    type="button"
+                    class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
+                    @click="viewJobLog(job)"
+                  >
+                    Lihat Log
+                  </button>
+
+                </div>
               </td>
             </tr>
           </tbody>
