@@ -30,6 +30,7 @@ const findById = async (id) => {
     `
       SELECT
         cj.id,
+        cj.platform_id,
         cj.mode,
         cj.project_id,
         cj.since,
@@ -112,10 +113,11 @@ const updateFinished = async (id, status, errorMessage = null) => {
 }
 
 
-const findAll = async (status = null, limit = 50, offset = 0) => {
+const findAll = async (projectId = null, status = null, limit = 50, offset = 0) => {
   let sql = `
     SELECT 
       cj.id,
+      cj.platform_id,
       cj.mode,
       cj.project_id,
       cj.group_id,
@@ -137,7 +139,15 @@ const findAll = async (status = null, limit = 50, offset = 0) => {
     INNER JOIN crawler_platforms cp
       ON cp.id = cj.platform_id
   `
+
+  const conditions = []
   const params = []
+
+
+  if(projectId){
+    conditions.push('cj.project_id = ?')
+    params.push(projectId)
+  }
 
   if(status){
     sql += `
@@ -145,6 +155,10 @@ const findAll = async (status = null, limit = 50, offset = 0) => {
     `
 
     params.push(status)
+  }
+
+  if(conditions.length > 0){
+    sql += `WHERE ${conditions.join(' AND ')}`
   }
 
   const parsedLimit = Number(limit)
