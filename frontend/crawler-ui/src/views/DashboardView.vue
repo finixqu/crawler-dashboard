@@ -16,14 +16,34 @@ const jobsError = ref(null)
 // untuk memulai/mengulang job yang pending/gagal 
 const startingJobIds = ref([])
 
+//untuk stop job
+const stoppingJobIds = ref([])
+
+
 //menyimpan error untuk yang dimulai ulang
 const startCrawlerError = ref('')
+
+// untuk filter
+const filterProjectId = ref('')
+const filterStatus = ref('')
+
+
+//untuk log
+const selectedLog = ref(null)
+const logLoading = ref(false)
+const logError = ref('')
+
+
+
 
 //menyimpan timer
 let refreshTimer = null
 
 //agar data tidak bertumpuk
 let JobRequestProgres = ref(false)
+
+
+
 
 //jumlah data job dari backend
 const stats = computed(() => {
@@ -84,7 +104,10 @@ const loadJobs = async (silent = false) => {
 
     jobsError.value = ''
 
-    const response = await jobServices.getJobs()
+    const response = await jobServices.getJobs({
+      projectId: filterProjectId.value || undefined,
+      status: filterStatus.value || undefined
+    })
 
     if (!response.success) {
       throw new Error(response.message || 'Gagal memuat job.')
@@ -155,6 +178,110 @@ const startJobCrawler = async (job) => {
   }
 }
 
+
+// Hanya job starting/running yang bisa dihentikan.
+const canStopCrawler = (job) => {
+  return ['starting', 'running'].includes(job.status)
+}
+
+// Menghentikan crawler.
+const stopJobCrawler = async (job) => {
+  if (
+    !canStopCrawler(job) ||
+    stoppingJobIds.value.includes(job.id)
+  ) {
+    return
+  }
+
+  const confirmed = window.confirm(
+    `Yakin ingin menghentikan crawler job #${job.id}?`
+  )
+
+  if (!confirmed) return
+
+  stoppingJobIds.value = [
+    ...stoppingJobIds.value,
+    job.id
+  ]
+
+  startCrawlerError.value = ''
+
+  try {
+    const response = await jobServices.stopCrawler(job.id)
+
+    if (!response.success) {
+      throw new Error(
+        response.message || 'Gagal menghentikan crawler.'
+      )
+    }
+
+    await loadJobs()
+  } catch (err) {
+    console.error('Gagal menghentikan crawler:', err)
+
+    startCrawlerError.value =
+      err.response?.data?.message ||
+      err.message ||
+      `Gagal menghentikan job #${job.id}.`
+  } finally {
+    stoppingJobIds.value =
+      stoppingJobIds.value.filter(id => id !== job.id)
+
+    await loadJobs(true)
+  }
+}
+
+// Mengambil log job.
+const viewJobLog = async (job) => {
+  selectedLog.value = {
+    jobId: job.id,
+    projectId: job.project_id,
+    status: job.status,
+    errorMessage: job.error_message,
+    content: ''
+  }
+
+  logLoading.value = true
+  logError.value = ''
+
+  try {
+    const response = await jobServices.getJobLog(job.id)
+
+    if (!response.success) {
+      throw new Error(response.message || 'Gagal mengambil log.')
+    }
+
+    selectedLog.value = response.data
+  } catch (err) {
+    console.error('Gagal mengambil log:', err)
+
+    logError.value =
+      err.response?.data?.message ||
+      err.message ||
+      'Gagal mengambil log.'
+  } finally {
+    logLoading.value = false
+  }
+}
+
+// Menutup tampilan log.
+const closeJobLog = () => {
+  selectedLog.value = null
+  logError.value = ''
+}
+
+// Menerapkan filter.
+const applyJobFilters = () => {
+  loadJobs()
+}
+
+// Menghapus filter.
+const resetJobFilters = () => {
+  filterProjectId.value = ''
+  filterStatus.value = ''
+
+  loadJobs()
+}
 
 
 // Format tanggal agar mudah dibaca.
@@ -345,6 +472,70 @@ onUnmounted(() => {
         </p>
       </div>
 
+    </div>
+
+    <!-- Job Filters -->
+    <div class="rounded-xl border border-slate-800 bg-slate-900 p-5">
+      <h2 class="font-medium text-white">
+        Filter Jobs
+      </h2>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-3">
+
+        <!-- Filter Project ID -->
+        <div>
+          <label class="mb-2 block text-xs text-slate-400">
+            Project ID
+          </label>
+
+          <input
+            v-model="filterProjectId"
+            type="text"
+            placeholder="Masukkan Project ID"
+            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+            @keyup.enter="applyJobFilters"
+          />
+        </div>
+
+        <!-- Filter Status -->
+        <div>
+          <label class="mb-2 block text-xs text-slate-400">
+            Status
+          </label>
+
+          <select
+            v-model="filterStatus"
+            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+          >
+            <option value="">Semua Status</option>
+            <option value="pending">Pending</option>
+            <option value="starting">Starting</option>
+            <option value="running">Running</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div class="flex items-end gap-2">
+          <button
+            type="button"
+            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+            @click="applyJobFilters"
+          >
+            Filter
+          </button>
+
+          <button
+            type="button"
+            class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+            @click="resetJobFilters"
+          >
+            Reset
+          </button>
+        </div>
+
+      </div>
     </div>
 
     <!-- Recent Jobs -->
@@ -541,5 +732,102 @@ onUnmounted(() => {
 
     </div>
 
+  </div>
+  <!-- Job Log Modal -->
+  <div
+    v-if="selectedLog"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+    @click.self="closeJobLog"
+  >
+    <div class="flex max-h-[85vh] w-full max-w-5xl flex-col rounded-xl border border-slate-700 bg-slate-900">
+
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+        <div>
+          <h2 class="font-semibold text-white">
+            Job Log #{{ selectedLog.jobId }}
+          </h2>
+
+          <p class="mt-1 text-xs text-slate-400">
+            Project ID: {{ selectedLog.projectId }}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800"
+            :disabled="logLoading"
+            @click="viewJobLog({
+              id: selectedLog.jobId,
+              project_id: selectedLog.projectId
+            })"
+          >
+            {{ logLoading ? 'Memuat...' : 'Refresh Log' }}
+          </button>
+
+          <button
+            type="button"
+            class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800"
+            @click="closeJobLog"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div
+        v-if="selectedLog.errorMessage"
+        class="border-b border-red-900/60 bg-red-950/30 px-5 py-3"
+      >
+        <p class="text-xs font-medium text-red-400">
+          Error:
+        </p>
+
+        <p class="mt-1 whitespace-pre-wrap text-sm text-red-300">
+          {{ selectedLog.errorMessage }}
+        </p>
+      </div>
+
+      <!-- Log Content -->
+      <div class="min-h-0 flex-1 overflow-auto p-5">
+
+        <div
+          v-if="logLoading"
+          class="text-sm text-slate-400"
+        >
+          Memuat log...
+        </div>
+
+        <div
+          v-else-if="logError"
+          class="text-sm text-red-400"
+        >
+          {{ logError }}
+        </div>
+
+        <div
+          v-else-if="!selectedLog.content"
+          class="text-sm text-slate-400"
+        >
+          Belum ada isi log.
+        </div>
+
+        <pre
+          v-else
+          class="whitespace-pre-wrap break-words rounded-lg bg-slate-950 p-4 font-mono text-xs leading-5 text-slate-300"
+        >{{ selectedLog.content }}</pre>
+
+        <p
+          v-if="selectedLog.truncated"
+          class="mt-3 text-xs text-amber-400"
+        >
+          Log terlalu besar. Yang ditampilkan adalah bagian terakhir log (maksimal sekitar 100 KB).
+        </p>
+
+      </div>
+
+    </div>
   </div>
 </template>

@@ -14,7 +14,20 @@ const startCrawler = async (jobId) => {
     return res.data
 }
 
-const getJobs = async () => {
+
+const stopCrawler = async (jobId) => {
+    const res = await api.post(`/jobs/${jobId}/stop`)
+
+    return res.data
+}
+
+
+const getJobLog = async (jobId) => {
+    const res = await api.get(`/jobs/${jobId}/log`)
+    return res.data
+}
+
+const getJobs = async (params = {}) => {
     const res = await api.get('/jobs')
 
     return res.data
@@ -23,5 +36,7 @@ const getJobs = async () => {
 export default {
     createProjectJob,
     startCrawler,
+    stopCrawler,
+    getJobLog,
     getJobs
 }
