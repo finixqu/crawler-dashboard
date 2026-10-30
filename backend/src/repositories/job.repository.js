@@ -38,6 +38,7 @@ const findById = async (id) => {
         cj.status,
         cj.tmux_session,
         cj.log_path,
+        cj.error_message,
         cj.created_at,
 
         cp.name AS platform,

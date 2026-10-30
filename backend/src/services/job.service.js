@@ -57,7 +57,7 @@ const stopJobCrawler = async (jobId) => {
 
     if(!Number.isInteger(id) || id <= 0) throw new Error("Job id Tidak Valid");
     
-    const job = await jobRepository.findByid(id)
+    const job = await jobRepository.findById(id)
 
     if(!job) throw new Error("Job Tidak Ada");
 
@@ -99,7 +99,7 @@ const getJobLog = async (jobId) => {
 
     if(!job) throw new Error("Job Tidak ditemukan");
 
-    const log = await logService.getJobLog(job.log_path)
+    const log = await logService.readJobLog(job.log_path)
     
     return {
         jobId: job.id,
@@ -114,5 +114,6 @@ const getJobLog = async (jobId) => {
 export default {
     createProjectJob,
     findAllJobs,
+    stopJobCrawler,
     getJobLog
 }

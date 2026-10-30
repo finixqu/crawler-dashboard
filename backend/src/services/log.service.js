@@ -40,7 +40,7 @@ const readJobLog = async (logPath) => {
     const basePath = path.resolve(LOG_BASE_PATH)
     const resolvedPath = path.resolve(logPath)
 
-    if(!resolvedPath.startsWIth(basePath + path.sep)){
+    if(!resolvedPath.startsWith(basePath + path.sep)){
         throw new Error('Lokasi Log Tidak Valid')
     }
 

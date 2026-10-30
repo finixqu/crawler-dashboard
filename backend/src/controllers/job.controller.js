@@ -78,7 +78,7 @@ const stopJobCrawler = async (req, res) => {
 
         return res.status(500).json({
             success: false,
-            message: "err.message",
+            message: err.message,
             data: null
         })
     }
@@ -88,7 +88,7 @@ const stopJobCrawler = async (req, res) => {
 const getJobLog = async (req, res) => {
     const id = Number(req.params.id)
     try {
-        const log = await logService.getJobLog(id)
+        const log = await jobService.getJobLog(id)
         if(!log) throw new Error("Job Id Tidak Valid");
         
         return res.json({
