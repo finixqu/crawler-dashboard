@@ -100,7 +100,7 @@ const startProjectCrawler = async (jobId) => {
         //tandai job berjalan
         await jobRepository.updateStarting(
             job.id,
-            null,
+            sessionName,
             log.logPath,
             commandDenganLog
         )

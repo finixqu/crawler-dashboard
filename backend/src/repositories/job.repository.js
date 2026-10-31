@@ -114,7 +114,7 @@ const updateFinished = async (id, status, errorMessage = null) => {
 }
 
 
-const findAll = async (projectId = null, status = null, limit = 50, offset = 0) => {
+const findAll = async ({projectId = null, status = null, limit = 50, offset = 0 } = {}) => {
   let sql = `
     SELECT 
       cj.id,
@@ -151,10 +151,8 @@ const findAll = async (projectId = null, status = null, limit = 50, offset = 0) 
   }
 
   if(status){
-    sql += `
-      WHERE status = ?
-    `
-
+   
+    conditions.push('cj.status = ?')
     params.push(status)
   }
 

@@ -100,7 +100,7 @@ const getJobLog = async (req, res) => {
     } catch (err) {
         console.error(err)
 
-        const statusCde = err.message === "ENOENT" ? 404 : 400
+        const statusCode = err.code === "ENOENT" ? 404 : 400
 
         return res.status(statusCode).json({
             success: false,
