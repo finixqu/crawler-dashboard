@@ -28,7 +28,7 @@ const getJobLog = async (jobId) => {
 }
 
 const getJobs = async (params = {}) => {
-    const res = await api.get('/jobs')
+    const res = await api.get('/jobs', { params })
 
     return res.data
 }
