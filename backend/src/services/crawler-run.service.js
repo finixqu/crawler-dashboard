@@ -37,11 +37,24 @@ const monitorJob = async (jobId, sessionName, exitFile) => {
         const sessionExist = await tmuxService.hasSession(sessionName)
 
         if (!sessionExist) {
+            const job = await jobRepository.findById(jobId)
+
+            // Jika job dihentikan secara manual, jangan timpa pesannya.
+            if (job?.error_message === 'Crawler Di Hentikan') {
+                await jobRepository.updateFinished(
+                    jobId,
+                    'failed',
+                    'Crawler Di Hentikan'
+                )
+                return
+            }
+
             await jobRepository.updateFinished(
                 jobId,
                 'failed',
                 'Sesi tmux berakhir sebelum exit code tercatat'
             )
+
             return
         }
 

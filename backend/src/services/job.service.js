@@ -52,25 +52,38 @@ const findAllJobs = async (filters = {}) => {
     return jobRepository.findAll(filters)
 }
 
+
 const stopJobCrawler = async (jobId) => {
     const id = Number(jobId)
 
-    if(!Number.isInteger(id) || id <= 0) throw new Error("Job id Tidak Valid");
-    
+    if (!Number.isInteger(id) || id <= 0) {
+        throw new Error("Job id Tidak Valid")
+    }
+
     const job = await jobRepository.findById(id)
 
-    if(!job) throw new Error("Job Tidak Ada");
+    if (!job) {
+        throw new Error("Job Tidak Ada")
+    }
 
-    //validasi untuk status job
-    if(!["starting", "running"].includes(job.status)){
-        throw new Error("Hanya job yang sedang berjalan yang bisa dihentikan");
+    if (!["starting", "running"].includes(job.status)) {
+        throw new Error(
+            "Hanya job yang sedang berjalan yang bisa dihentikan"
+        )
     }
 
     const sessionName = job.tmux_session || `crawler-job-${job.id}`
 
+    // Tandai terlebih dahulu bahwa job diminta berhenti.
+    const stopRequested = await jobRepository.updateStopRequested(job.id)
+
+    if (!stopRequested) {
+        throw new Error("Permintaan penghentian job gagal diproses")
+    }
+
     const sessionExist = await tmuxService.hasSession(sessionName)
 
-    if(sessionExist){
+    if (sessionExist) {
         await tmuxService.killSession(sessionName)
     }
 
@@ -85,9 +98,7 @@ const stopJobCrawler = async (jobId) => {
         status: 'failed',
         message: 'Crawler Berhasil Dihentikan'
     }
-
 }
-
 
 //untuk mengambil log project
 const getJobLog = async (jobId) => {

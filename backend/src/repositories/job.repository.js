@@ -183,12 +183,30 @@ const findAll = async ({projectId = null, status = null, limit = 50, offset = 0 
   return rows
 }
 
+const updateStopRequested = async (id) => {
+    const sql = `
+        UPDATE crawler_jobs
+        SET error_message = 'Crawler Di Hentikan'
+        WHERE id = ?
+          AND status IN ('starting', 'running')
+    `
+
+    const [result] = await db.execute(sql, [id])
+
+    return result.affectedRows > 0
+}
+
+
+
+
+
 
 export default {
     createProjectJob,
     findById,
     updateStarting,
     updateRunning,
+    updateStopRequested,
     updateFinished,
     findAll,
 }
