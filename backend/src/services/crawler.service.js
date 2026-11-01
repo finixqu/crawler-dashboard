@@ -1,9 +1,10 @@
-import { spawnProcess } from "./process.service.js";
 import { crawlerConfig } from "../config/crawler.config.js";
 
-function buildTiktokCommand ({ projectId, since, until }) {
+function buildCrawlerCommand ({ platform, projectId, since, until }) {
 
     function formatCrawlerDate(value) {
+        if(!value) throw new Error("Masukkan Tanggal");
+        
         if (value instanceof Date) {
             if (Number.isNaN(value.getTime())) {
                 throw new Error('Tanggal tidak valid')
@@ -61,40 +62,111 @@ function buildTiktokCommand ({ projectId, since, until }) {
 
     
 
-    const config = crawlerConfig.tiktok
+    const config = crawlerConfig[platform]
+    if(!config) throw new Error("Platform tidak didukung");
+    
 
     const args = [
         'run',
         '--rm',
-
-        '-v',
-        `${config.config}:${config.configContainer}`,
-
-        config.image,
-
-        '--config',
-        config.configContainer,
-
-        config.command,
-
-        '--since',
-        formatedSince,
-
-        '--until',
-        formatedUntil,
-
-        '--rapidapi',
-
-        '--limit-comment',
-        '0',
-
-        '--no-proxy',
-
-        '--lang=id',
-
-        '--project-id',
-        String(projectId)
     ]
+
+    if(config.networkHost) {
+        args.push('--network', 'host')
+    }
+
+    args.push(
+        '-v', 
+        `${config.config}:${config.configContainer}`,
+        `${config.image}`,
+        '--config',
+        `${config.configContainer}`,
+        `${config.command}`
+    )
+
+
+    switch (platform) {
+        case 'tiktok':
+            args.push(
+                '--since', formatedSince,
+                '--until', formatedUntil,
+                '--rapidapi',
+                '--limit-command', '0',
+                '--no-proxy',
+                '--lang=id',
+                '--project-id', String(projectId)
+            )
+            
+            break;
+        
+        case 'youtube':
+            args.push(
+                '--since', formattedSince,
+                '--until', formattedUntil,
+                '--lang=id',
+                '--limit-comment', '100',
+                '--no-proxy',
+                '--project-id', String(projectId)
+            );
+            break;
+
+        case 'news':
+            args.push(
+                '--since', formattedSince,
+                '--until', formattedUntil,
+                '-c', '10',
+                '--no-proxy',
+                '--project-id', String(projectId)
+            );
+            break;
+
+        case 'facebook':
+            args.push(
+                '--limit-comment=100',
+                `--since=${formattedSince}`,
+                `--until=${formattedUntil}`,
+                '--no-proxy',
+                '--project-id', String(projectId)
+            );
+            break;
+
+        case 'instagram':
+            args.push(
+                '--since', formattedSince,
+                '--until', formattedUntil,
+                '--limit-comment', '0',
+                '--lang=id',
+                '--no-proxy',
+                '--rapidapi',
+                '--project-id', String(projectId)
+            );
+            break;
+
+        case 'threads':
+            args.push(
+                '--lang=id',
+                '--since', formattedSince,
+                '--until', formattedUntil,
+                '--limit-comment', '0',
+                '--no-proxy',
+                '--project-id', String(projectId)
+            );
+            break;
+
+        case 'twitter':
+            args.push(
+                '--lang=id',
+                '--since', formattedSince,
+                '--until', formattedUntil,
+                '--project', String(projectId)
+            );
+            break;
+
+        default:
+            throw new Error(`Platform tidak didukung: ${platform}`);
+    }
+
+
 
     //kita buat outputnya ini
     return {
@@ -105,4 +177,4 @@ function buildTiktokCommand ({ projectId, since, until }) {
 }
 
 
-export default {buildTiktokCommand} 
+export default {buildCrawlerCommand} 

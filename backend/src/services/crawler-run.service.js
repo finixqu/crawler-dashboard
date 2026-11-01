@@ -80,7 +80,8 @@ const startProjectCrawler = async (jobId) => {
     try {
 
         //buat kode untuk menghasilkan command
-        const crawlerCommand = await crawlerService.buildTiktokCommand({
+        const crawlerCommand = await crawlerService.buildCrawlerCommand({
+            platform: job.platform,
             projectId : job.project_id,
             since: job.since,
             until: job.until

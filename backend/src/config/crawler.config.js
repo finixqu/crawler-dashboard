@@ -47,10 +47,10 @@ export const crawlerConfig = {
     },
 
     threads : {
-        image: 'registry.infra.ivo.lan/r10/crawler/twitter:f1b006d',
-        config: '/home/ivohaki/backdate/twitter-task/config-vpn-twitter.toml',
-        configContainer: '/config-vpn-twitter.toml',
-        command: 'basic-worker basic-worker-direct',
-        networkHost: false
+        image: 'registry.infra.ivo.lan/r10/crawler/threads:22c1168',
+        config: '/home/ivohaki/backdate/threads/config-threads.toml',
+        configContainer: '/config-threads.toml',
+        command: 'threads-direct',
+        networkHost: true
     }
 }
