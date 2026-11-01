@@ -87,12 +87,6 @@ async function submitJob() {
     return
   }
 
-  // Untuk sementara, runner yang tersedia hanya TikTok (ID 1).
-  if (Number(form.value.platformId) !== 1) {
-    errorMessage.value =
-      'Saat ini crawler yang dapat dijalankan hanya TikTok.'
-    return
-  }
 
   let createdJobId = null
 
