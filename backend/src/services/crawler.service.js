@@ -91,7 +91,7 @@ function buildCrawlerCommand ({ platform, projectId, since, until }) {
                 '--since', formatedSince,
                 '--until', formatedUntil,
                 '--rapidapi',
-                '--limit-command', '0',
+                '--limit-comment', '0',
                 '--no-proxy',
                 '--lang=id',
                 '--project-id', String(projectId)
@@ -101,8 +101,8 @@ function buildCrawlerCommand ({ platform, projectId, since, until }) {
         
         case 'youtube':
             args.push(
-                '--since', formattedSince,
-                '--until', formattedUntil,
+                '--since', formatedSince,
+                '--until', formatedUntil,
                 '--lang=id',
                 '--limit-comment', '100',
                 '--no-proxy',
@@ -112,8 +112,8 @@ function buildCrawlerCommand ({ platform, projectId, since, until }) {
 
         case 'news':
             args.push(
-                '--since', formattedSince,
-                '--until', formattedUntil,
+                '--since', formatedSince,
+                '--until', formatedUntil,
                 '-c', '10',
                 '--no-proxy',
                 '--project-id', String(projectId)
@@ -123,8 +123,8 @@ function buildCrawlerCommand ({ platform, projectId, since, until }) {
         case 'facebook':
             args.push(
                 '--limit-comment=100',
-                `--since=${formattedSince}`,
-                `--until=${formattedUntil}`,
+                '--since', formatedSince`,
+                '--until', formatedUntil`,
                 '--no-proxy',
                 '--project-id', String(projectId)
             );
@@ -132,8 +132,8 @@ function buildCrawlerCommand ({ platform, projectId, since, until }) {
 
         case 'instagram':
             args.push(
-                '--since', formattedSince,
-                '--until', formattedUntil,
+                '--since', formatedSince,
+                '--until', formatedUntil,
                 '--limit-comment', '0',
                 '--lang=id',
                 '--no-proxy',
@@ -145,8 +145,8 @@ function buildCrawlerCommand ({ platform, projectId, since, until }) {
         case 'threads':
             args.push(
                 '--lang=id',
-                '--since', formattedSince,
-                '--until', formattedUntil,
+                '--since', formatedSince,
+                '--until', formatedUntil,
                 '--limit-comment', '0',
                 '--no-proxy',
                 '--project-id', String(projectId)
@@ -156,8 +156,8 @@ function buildCrawlerCommand ({ platform, projectId, since, until }) {
         case 'twitter':
             args.push(
                 '--lang=id',
-                '--since', formattedSince,
-                '--until', formattedUntil,
+                '--since', formatedSince,
+                '--until', formatedUntil,
                 '--project', String(projectId)
             );
             break;
