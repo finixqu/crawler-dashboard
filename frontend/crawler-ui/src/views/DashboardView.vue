@@ -826,7 +826,7 @@ onUnmounted(() => {
 
         <pre
           v-else
-          class="whitespace-pre-wrap break-words rounded-lg bg-slate-950 p-4 font-mono text-xs leading-5 text-slate-300"
+          class="whitespace-pre-wrap rounded-lg bg-slate-950 p-4 font-mono text-xs leading-5 text-slate-300"
         >{{ selectedLog.content }}</pre>
 
         <p
