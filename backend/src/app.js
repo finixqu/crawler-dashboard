@@ -4,6 +4,7 @@ import cors from 'cors'
 import platformRoute from './routes/platform.route.js'
 import jobRoute from './routes/job.route.js'
 import crawlerRoute from './routes/crawler.route.js'
+import groupRoute from './routes/group.route.js'
 
 const app = express()
 
@@ -20,5 +21,6 @@ app.get('/api/health', (req, res) => {
 app.use('/api/platforms', platformRoute)
 app.use('/api/jobs', jobRoute)
 app.use('/api/crawlers/', crawlerRoute)
+app.use('/api/groups', groupRoute)
 
 export default app 
