@@ -7,9 +7,11 @@ const router = express.Router()
 
 
 router.post('/project', jobController.createProjectJob)
+router.post('/group', jobController.createGroupJob)
 router.post('/:id/stop', jobController.stopJobCrawler)
 
 router.get('/', jobController.getJobs)
 router.get('/:id/log', jobController.getJobLog)
+
 
 export default router

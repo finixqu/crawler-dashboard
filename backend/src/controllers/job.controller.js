@@ -31,6 +31,39 @@ const createProjectJob = async (req, res) => {
 }
 
 
+const createGroupJob = async (req, res) => {
+    const {
+        platformId,
+        groupId,
+        since,
+        until
+    } = req.body
+
+    try {
+        const job = await jobService.createGroupJob({
+            platformId,
+            groupId,
+            since,
+            until
+        })
+
+        return res.json({
+            success: true,
+            message: "Group Job berhasil dibuat",
+            data: job
+        })
+    } catch (err) {
+        console.error(err)
+
+        return res.status(400).json({
+            success: false,
+            message: err.message || "Gagal membuat Group Job",
+            data: null
+        })
+    }
+}
+
+
 const getJobs = async (req, res) => {
     try {
 
@@ -114,6 +147,7 @@ const getJobLog = async (req, res) => {
 
 export default {
     createProjectJob,
+    createGroupJob,
     getJobs,
     stopJobCrawler,
     getJobLog

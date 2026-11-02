@@ -18,6 +18,26 @@ const getGroups = async (req, res) => {
 }
 
 
+const readGroupProjects = async (req, res) => {
+    const { groupId } = req.params;
+
+    try {
+        const projects = await groupService.readGroupProjects(groupId);
+        res.status(200).json({
+            success: true,
+            message: 'Data Projects ditampilkan',
+            data: projects
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: 'Data Gagal Ditampilkan'
+        })
+    }
+}
+
 export default {
     getGroups,
+    readGroupProjects
 }
+
