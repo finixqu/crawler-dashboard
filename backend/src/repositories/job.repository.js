@@ -222,6 +222,7 @@ const createGroupJob = async ({platformId, groupId, since, until}) => {
 
 export default {
     createProjectJob,
+    createGroupJob,
     findById,
     updateStarting,
     updateRunning,

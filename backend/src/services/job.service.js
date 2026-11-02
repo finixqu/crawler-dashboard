@@ -2,6 +2,7 @@ import platformRepository from '../repositories/platform.repository.js'
 import jobRepository from '../repositories/job.repository.js'
 import tmuxService from './tmux.service.js'
 import logService from './log.service.js'
+import groupRepository from '../repositories/group.repository.js'
 
 const createProjectJob = async ({ platformId, projectId, since, until}) => {
     //verifikasi platform
@@ -46,6 +47,66 @@ const createProjectJob = async ({ platformId, projectId, since, until}) => {
     return jobRepository.findById(jobId)
 
 }
+
+
+//untuk group job
+const createGroupJob = async ({ platformId, groupId, since, until }) => {
+    // Validasi platform
+    const parsedPlatformId = Number(platformId)
+
+    if (!Number.isInteger(parsedPlatformId) || parsedPlatformId <= 0) {
+        throw new Error('Platform wajib dipilih')
+    }
+
+    const platform = await platformRepository.findById(parsedPlatformId)
+
+    if (!platform) {
+        throw new Error('Platform tidak ditemukan')
+    }
+
+    // Validasi group
+    const parsedGroupId = Number(groupId)
+
+    if (!Number.isInteger(parsedGroupId) || parsedGroupId <= 0) {
+        throw new Error('Group wajib dipilih')
+    }
+
+    const group = await groupRepository.findById(parsedGroupId)
+
+    if (!group || !group.is_active) {
+        throw new Error('Group tidak ditemukan atau tidak aktif')
+    }
+
+    // Validasi tanggal
+    if (!since) throw new Error('Since wajib diisi')
+
+    if (!until) throw new Error('Until wajib diisi')
+
+    const startDate = new Date(since)
+    const endDate = new Date(until)
+
+    if (
+        Number.isNaN(startDate.getTime()) ||
+        Number.isNaN(endDate.getTime())
+    ) {
+        throw new Error('Format tanggal tidak valid')
+    }
+
+    if (startDate > endDate) {
+        throw new Error('Until harus lebih besar dari Since')
+    }
+
+    // Simpan Group Job
+    const jobId = await jobRepository.createGroupJob({
+        platformId: parsedPlatformId,
+        groupId: parsedGroupId,
+        since,
+        until
+    })
+
+    return jobRepository.findById(jobId)
+}
+
 
 //disertai filtering
 const findAllJobs = async (filters = {}) => {
@@ -124,6 +185,7 @@ const getJobLog = async (jobId) => {
 
 export default {
     createProjectJob,
+    createGroupJob,
     findAllJobs,
     stopJobCrawler,
     getJobLog
