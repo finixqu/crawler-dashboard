@@ -33,6 +33,7 @@ const findById = async (id) => {
         cj.platform_id,
         cj.mode,
         cj.project_id,
+        cj.group_id,
         cj.since,
         cj.until,
         cj.status,
@@ -197,6 +198,24 @@ const updateStopRequested = async (id) => {
 }
 
 
+
+const createGroupJob = async ({platformId, groupId, since, until}) => {
+  const sql = `
+    INSERT INTO crawler_jobs (
+      platform_id,
+      mode,
+      group_id,
+      since,
+      until,
+      status
+    )
+    VALUES (?, 'group', ?, ?, ?, 'pending')
+  `
+
+  const [result] = await db.execute(sql, [platformId, groupId, since, until])
+
+  return result.insertId
+}
 
 
 
