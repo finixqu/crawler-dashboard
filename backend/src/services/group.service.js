@@ -23,7 +23,7 @@ const readGroupProjects = async (grupId) => {
 
     return {
         groupId: group.id,
-        groupName: group.display.name,
+        groupName: group.display_name,
         filepath: group.file_path,
         totalProject: projectIds.length,
         projectIds 

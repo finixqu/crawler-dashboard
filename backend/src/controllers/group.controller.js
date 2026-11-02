@@ -11,7 +11,7 @@ const getGroups = async (req, res) => {
     } catch (err) {
         res.status(500).json({
             success: false,
-            message: 'Data Gagal Ditampilkan'
+            message: err.message || 'Data Gagal Ditampilkan'
         })
     }
        
@@ -19,10 +19,10 @@ const getGroups = async (req, res) => {
 
 
 const readGroupProjects = async (req, res) => {
-    const { groupId } = req.params;
+    const id  = req.params.id
 
     try {
-        const projects = await groupService.readGroupProjects(groupId);
+        const projects = await groupService.readGroupProjects(id);
         res.status(200).json({
             success: true,
             message: 'Data Projects ditampilkan',
@@ -31,7 +31,7 @@ const readGroupProjects = async (req, res) => {
     } catch (err) {
         res.status(500).json({
             success: false,
-            message: 'Data Gagal Ditampilkan'
+            message: err.message || 'Data Gagal Ditampilkan'
         })
     }
 }
