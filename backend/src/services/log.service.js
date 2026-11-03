@@ -5,6 +5,8 @@ import path from 'node:path'
 
 const LOG_BASE_PATH = '/home/ivohaki/backdate/crawler-dashboard/dashboard-logs'
 const MAX_LOG_SIZE = 100 * 1024
+
+
 const createJobLog = async (projectId, jobId) => {
 
     if(!projectId) throw new Error('Project ID Wajib Diisi')
@@ -33,6 +35,43 @@ const createJobLog = async (projectId, jobId) => {
         logPath
     }
 }
+
+const createGroupJobLog = async (groupId, jobId) => {
+    if (!groupId) {
+        throw new Error('Group ID Wajib Diisi')
+    }
+
+    if (!jobId) {
+        throw new Error('Job ID Wajib Diisi')
+    }
+
+    await fs.mkdir(
+        LOG_BASE_PATH,
+        {
+            recursive: true
+        }
+    )
+
+    const logPath = path.join(
+        LOG_BASE_PATH,
+        `job-${jobId}-group-${groupId}.log`
+    )
+
+    await fs.writeFile(
+        logPath,
+        '',
+        {
+            flag: 'w'
+        }
+    )
+
+    return {
+        logPath
+    }
+}
+
+
+
 
 const readJobLog = async (logPath) => {
     if(!logPath) throw new Error('Log belum tersedia saat ini !')
@@ -81,5 +120,6 @@ const readJobLog = async (logPath) => {
 
 export default {
     createJobLog,
+    createGroupJobLog,
     readJobLog
 }
