@@ -1,11 +1,11 @@
 import fs from "node:fs/promises"
-import path from "node:path"
 
 import jobRepository from "../repositories/job.repository.js"
 import crawlerService from "./crawler.service.js"
 import groupService from "./group.service.js"
 import tmuxService from "./tmux.service.js"
 import logService from "./log.service.js"
+
 
 // Memantau status job.
 const monitorJob = async (jobId, sessionName, exitFile) => {
@@ -20,15 +20,27 @@ const monitorJob = async (jobId, sessionName, exitFile) => {
 
             const job = await jobRepository.findById(jobId)
 
-            if(job?.mode === "group" && job?.error_message === "crawler dihentikan") {
-                await jobRepository.updateFinished(jobId, "stopped", "Craler Di Hentikan")
-            } else if(exitCode === 0) {
-                await jobRepository.updateFinished(jobId, "success", null)
+            if (
+                job?.mode === "group" &&
+                job?.error_message === "Crawler Di Hentikan"
+            ) {
+                await jobRepository.updateFinished(
+                    jobId,
+                    "stopped",
+                    "Crawler Di Hentikan"
+                )
+            } else if (exitCode === 0) {
+                await jobRepository.updateFinished(
+                    jobId,
+                    "success"
+                )
             } else {
-                await jobRepository.updateFinished(jobId, "failed", "crawler berhenti dengan exit code " + exitCode)
+                await jobRepository.updateFinished(
+                    jobId,
+                    "failed",
+                    `Crawler berhenti dengan exit code ${exitCode}`
+                )
             }
-
-
 
             await fs.rm(exitFile, { force: true })
             return
@@ -45,13 +57,15 @@ const monitorJob = async (jobId, sessionName, exitFile) => {
             const job = await jobRepository.findById(jobId)
 
             if (job?.error_message === "Crawler Di Hentikan") {
+                const finalStatus =
+                    job.mode === "group" ? "stopped" : "failed"
 
-                const finalStatus = job.mode === "group" ? "stopped" : "failed"
                 await jobRepository.updateFinished(
                     jobId,
                     finalStatus,
                     "Crawler Di Hentikan"
                 )
+
                 return
             }
 
@@ -92,14 +106,10 @@ const startProjectCrawler = async (jobId) => {
             until: job.until
         })
 
-        crawlerCommand.args.splice(
-            2,
-            0,
-            "--label",
-            `crawler-group-job=${job.id}`
+        const log = await logService.createJobLog(
+            job.project_id,
+            job.id
         )
-
-        const log = await logService.createJobLog(job.project_id, job.id)
 
         const commandProses = [
             crawlerCommand.command,
@@ -110,76 +120,14 @@ const startProjectCrawler = async (jobId) => {
 
         const exitFile = `${log.logPath}.exit.log`
 
-        const runnerFile = `${log.logPath}.run.sh`
+        const commandDenganLog = [
+            "set -o pipefail",
+            `${commandProses} 2>&1 | tee -a ${crawlerService.shellQuote(log.logPath)}`,
+            "exit_code=$?",
+            `printf '%s\\n' "$exit_code" > ${crawlerService.shellQuote(exitFile)}`,
+            'exit "$exit_code"'
+        ].join("; ")
 
-        // Script Bash khusus untuk menjalankan GNU Parallel.
-        const runnerScript = `#!/usr/bin/env bash
-
-        set -o pipefail
-
-        EXIT_FILE=${crawlerService.shellQuote(exitFile)}
-        COMMANDS_FILE=${crawlerService.shellQuote(commandsFile)}
-        LOG_FILE=${crawlerService.shellQuote(log.logPath)}
-        CONTAINER_PREFIX=${crawlerService.shellQuote(`crawler-group-${job.id}-`)}
-
-        write_exit() {
-            printf '%s\\\\n' "$1" > "$EXIT_FILE"
-        }
-
-        stop_group_containers() {
-            echo "Menghentikan container Group Job ${job.id}..."
-
-            local empty_checks=0
-
-            while [ "$empty_checks" -lt 3 ]; do
-                local container_ids
-                container_ids=$(docker ps -aq --filter "label=crawler-group-job=${job.id}")
-
-                if [ -n "$container_ids" ]; then
-                    empty_checks=0
-                    docker stop --time 5 $container_ids || true
-                else
-                    empty_checks=$((empty_checks + 1))
-                    sleep 1
-                fi
-            done
-
-            echo "Penghentian container Group Job selesai."
-        }
-
-        handle_signal() {
-            local signal="$1"
-            local exit_code=130
-
-            if [ "$signal" = "TERM" ]; then
-                exit_code=143
-            fi
-
-            trap - INT TERM
-
-            stop_group_containers
-            write_exit "$exit_code"
-
-            exit "$exit_code"
-        }
-
-        trap 'handle_signal INT' INT
-        trap 'handle_signal TERM' TERM
-
-        /usr/bin/parallel --line-buffer -j ${parsedConcurrency} < "$COMMANDS_FILE" 2>&1 | tee -a "$LOG_FILE"
-
-        exit_code=$?
-
-        write_exit "$exit_code"
-
-        exit "$exit_code"
-        `
-
-        await fs.writeFile(runnerFile, runnerScript, "utf8")
-
-        // tmux hanya perlu menjalankan script Bash tersebut.
-        const commandDenganLog = `bash ${crawlerService.shellQuote(runnerFile)}`
-        
         await jobRepository.updateStarting(
             job.id,
             sessionName,
@@ -208,7 +156,10 @@ const startProjectCrawler = async (jobId) => {
                     err.message
                 )
             } catch (updateError) {
-                console.error("Gagal memperbarui status job:", updateError)
+                console.error(
+                    "Gagal memperbarui status job:",
+                    updateError
+                )
             }
         })
 
@@ -278,14 +229,12 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
                 until: job.until
             })
 
-            const containerName = `crawler-group-${job.id}-${projectId}`
-
-            // Tambahkan nama unik pada setiap container.
+            // Label unik untuk mengidentifikasi container milik Group Job.
             crawlerCommand.args.splice(
                 2,
                 0,
-                "--name",
-                containerName
+                "--label",
+                `crawler-group-job=${job.id}`
             )
 
             return [
@@ -306,24 +255,79 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
         )
 
         const exitFile = `${log.logPath}.exit.log`
+        const runnerFile = `${log.logPath}.run.sh`
 
-        // GNU Parallel membaca command dari file.
-        const parallelCommand = [
-            "/usr/bin/parallel",
-            "--line-buffer",
-            "-j",
-            String(parsedConcurrency),
-            "<",
-            crawlerService.shellQuote(commandsFile)
-        ].join(" ")
+        // Script Bash untuk menjalankan dan menghentikan Group Job.
+        const runnerScript = `#!/usr/bin/env bash
 
-        const commandDenganLog = [
-            "set -o pipefail",
-            `${parallelCommand} 2>&1 | tee -a ${crawlerService.shellQuote(log.logPath)}`,
-            "exit_code=$?",
-            `printf '%s\\n' "$exit_code" > ${crawlerService.shellQuote(exitFile)}`,
-            'exit "$exit_code"'
-        ].join("; ")
+set -o pipefail
+
+EXIT_FILE=${crawlerService.shellQuote(exitFile)}
+COMMANDS_FILE=${crawlerService.shellQuote(commandsFile)}
+LOG_FILE=${crawlerService.shellQuote(log.logPath)}
+JOB_ID=${crawlerService.shellQuote(job.id)}
+
+write_exit() {
+    printf '%s\\n' "$1" > "$EXIT_FILE"
+}
+
+stop_group_containers() {
+    echo "Menghentikan container Group Job $JOB_ID..."
+
+    local empty_checks=0
+
+    while [ "$empty_checks" -lt 3 ]; do
+        local container_ids
+        container_ids=$(docker ps -aq --filter "label=crawler-group-job=$JOB_ID")
+
+        if [ -n "$container_ids" ]; then
+            empty_checks=0
+            docker stop --time 5 $container_ids || true
+        else
+            empty_checks=$((empty_checks + 1))
+            sleep 1
+        fi
+    done
+
+    echo "Penghentian container Group Job selesai."
+}
+
+handle_signal() {
+    local signal="$1"
+    local exit_code=130
+
+    if [ "$signal" = "TERM" ]; then
+        exit_code=143
+    fi
+
+    trap - INT TERM
+
+    stop_group_containers
+    write_exit "$exit_code"
+
+    exit "$exit_code"
+}
+
+trap 'handle_signal INT' INT
+trap 'handle_signal TERM' TERM
+
+/usr/bin/parallel --line-buffer -j ${parsedConcurrency} < "$COMMANDS_FILE" 2>&1 | tee -a "$LOG_FILE"
+
+exit_code=$?
+
+write_exit "$exit_code"
+
+exit "$exit_code"
+`
+
+        await fs.writeFile(
+            runnerFile,
+            runnerScript,
+            "utf8"
+        )
+
+        const commandDenganLog =
+            `bash ${crawlerService.shellQuote(runnerFile)}`
 
         await jobRepository.updateStarting(
             job.id,
