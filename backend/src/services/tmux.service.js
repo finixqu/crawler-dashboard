@@ -109,11 +109,22 @@ const sendCommand = async (sessionName, command) => {
     ])
 }
 
+// Mengirim sinyal Ctrl+C ke proses yang berjalan di tmux.
+const sendInterrupt = async (sessionName) => {
+    return executeTmux([
+        'send-keys',
+        '-t',
+        sessionName,
+        'C-c'
+    ])
+}
+
 
 export default {
     createSession,
     hasSession,
     waitForsession,
     killSession,
-    sendCommand
+    sendCommand,
+    sendInterrupt
 }

@@ -135,7 +135,7 @@ const stopJobCrawler = async (jobId) => {
 
     const sessionName = job.tmux_session || `crawler-job-${job.id}`
 
-    // Tandai terlebih dahulu bahwa job diminta berhenti.
+    // Tandai bahwa job diminta berhenti.
     const stopRequested = await jobRepository.updateStopRequested(job.id)
 
     if (!stopRequested) {
@@ -144,20 +144,44 @@ const stopJobCrawler = async (jobId) => {
 
     const sessionExist = await tmuxService.hasSession(sessionName)
 
+    if (job.mode === "group") {
+
+        // Group Job: kirim Ctrl+C agar GNU Parallel
+        // menerima sinyal penghentian.
+        if (sessionExist) {
+            await tmuxService.sendInterrupt(sessionName)
+        } else {
+            await jobRepository.updateFinished(
+                job.id,
+                "stopped",
+                "Crawler Di Hentikan"
+            )
+        }
+
+        return {
+            jobId: job.id,
+            status: sessionExist ? "running" : "stopped",
+            message: sessionExist
+                ? "Permintaan penghentian Group Job berhasil dikirim"
+                : "Group Job sudah dihentikan"
+        }
+    }
+
+    // Project Job: pertahankan mekanisme lama.
     if (sessionExist) {
         await tmuxService.killSession(sessionName)
     }
 
     await jobRepository.updateFinished(
         job.id,
-        'failed',
-        'Crawler Di Hentikan'
+        "failed",
+        "Crawler Di Hentikan"
     )
 
     return {
         jobId: job.id,
-        status: 'failed',
-        message: 'Crawler Berhasil Dihentikan'
+        status: "failed",
+        message: "Crawler Berhasil Dihentikan"
     }
 }
 
