@@ -1,7 +1,9 @@
 import fs from "node:fs/promises"
+import path from "node:path"
 
 import jobRepository from "../repositories/job.repository.js"
 import crawlerService from "./crawler.service.js"
+import groupService from "./group.service.js"
 import tmuxService from "./tmux.service.js"
 import logService from "./log.service.js"
 
@@ -62,6 +64,8 @@ const monitorJob = async (jobId, sessionName, exitFile) => {
     }
 }
 
+
+// Menjalankan Project Job.
 const startProjectCrawler = async (jobId) => {
     const job = await jobRepository.findById(Number(jobId))
 
@@ -86,7 +90,6 @@ const startProjectCrawler = async (jobId) => {
 
         const log = await logService.createJobLog(job.project_id, job.id)
 
-        // Setiap argumen di-quote secara terpisah.
         const commandProses = [
             crawlerCommand.command,
             ...crawlerCommand.args
@@ -132,10 +135,7 @@ const startProjectCrawler = async (jobId) => {
                     err.message
                 )
             } catch (updateError) {
-                console.error(
-                    "Gagal memperbarui status job:",
-                    updateError
-                )
+                console.error("Gagal memperbarui status job:", updateError)
             }
         })
 
@@ -156,6 +156,153 @@ const startProjectCrawler = async (jobId) => {
     }
 }
 
+
+// Menjalankan Group Job menggunakan GNU Parallel.
+const startGroupCrawler = async (jobId, concurrency = 10) => {
+    const job = await jobRepository.findById(Number(jobId))
+
+    if (!job) {
+        throw new Error("Job tidak ada")
+    }
+
+    if (job.mode !== "group" || !job.group_id) {
+        throw new Error("Job ini bukan Group Job")
+    }
+
+    const parsedConcurrency = Number(concurrency)
+
+    if (
+        !Number.isInteger(parsedConcurrency) ||
+        parsedConcurrency < 1 ||
+        parsedConcurrency > 50
+    ) {
+        throw new Error("Concurrency harus berupa angka 1 sampai 50")
+    }
+
+    const sessionName = `crawler-job-${job.id}`
+    const sessionExist = await tmuxService.hasSession(sessionName)
+
+    if (sessionExist) {
+        throw new Error(`Tmux session ${sessionName} masih aktif`)
+    }
+
+    try {
+        // Membaca daftar project ID dari file TXT.
+        const group = await groupService.readGroupProjects(job.group_id)
+
+        // Membuat log khusus Group Job.
+        const log = await logService.createGroupJobLog(
+            job.group_id,
+            job.id
+        )
+
+        // Membentuk satu perintah Docker untuk setiap project ID.
+        const commands = group.projectIds.map(projectId => {
+            const crawlerCommand = crawlerService.buildCrawlerCommand({
+                platform: job.platform,
+                projectId,
+                since: job.since,
+                until: job.until
+            })
+
+            return [
+                crawlerCommand.command,
+                ...crawlerCommand.args
+            ]
+                .map(crawlerService.shellQuote)
+                .join(" ")
+        })
+
+        // Menyimpan seluruh perintah ke file khusus job.
+        const commandsFile = `${log.logPath}.commands.txt`
+
+        await fs.writeFile(
+            commandsFile,
+            `${commands.join("\n")}\n`,
+            "utf8"
+        )
+
+        const exitFile = `${log.logPath}.exit.log`
+
+        // GNU Parallel membaca command dari file.
+        const parallelCommand = [
+            "/usr/bin/parallel",
+            "--line-buffer",
+            "-j",
+            String(parsedConcurrency),
+            "<",
+            crawlerService.shellQuote(commandsFile)
+        ].join(" ")
+
+        const commandDenganLog = [
+            "set -o pipefail",
+            `${parallelCommand} 2>&1 | tee -a ${crawlerService.shellQuote(log.logPath)}`,
+            "exit_code=$?",
+            `printf '%s\\n' "$exit_code" > ${crawlerService.shellQuote(exitFile)}`,
+            'exit "$exit_code"'
+        ].join("; ")
+
+        await jobRepository.updateStarting(
+            job.id,
+            sessionName,
+            log.logPath,
+            commandDenganLog
+        )
+
+        await fs.rm(exitFile, { force: true })
+
+        await tmuxService.createSession(sessionName)
+
+        await tmuxService.sendCommand(
+            sessionName,
+            commandDenganLog
+        )
+
+        await jobRepository.updateRunning(job.id)
+
+        // Memantau hasil GNU Parallel.
+        void monitorJob(job.id, sessionName, exitFile).catch(async err => {
+            console.error("Gagal memonitor Group Job:", err)
+
+            try {
+                await jobRepository.updateFinished(
+                    job.id,
+                    "failed",
+                    err.message
+                )
+            } catch (updateError) {
+                console.error(
+                    "Gagal memperbarui status Group Job:",
+                    updateError
+                )
+            }
+        })
+
+        return {
+            jobId: job.id,
+            groupId: job.group_id,
+            groupName: group.groupName,
+            totalProject: group.totalProject,
+            concurrency: parsedConcurrency,
+            sessionName,
+            logPath: log.logPath,
+            commandsFile,
+            command: commandDenganLog
+        }
+
+    } catch (err) {
+        await jobRepository.updateFinished(
+            job.id,
+            "failed",
+            err.message
+        )
+
+        throw err
+    }
+}
+
+
 export default {
-    startProjectCrawler
+    startProjectCrawler,
+    startGroupCrawler
 }
