@@ -302,7 +302,25 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
 }
 
 
+// Menentukan jenis job berdasarkan mode di database.
+const startCrawler = async (jobId, concurrency = 10) => {
+    const job = await jobRepository.findById(Number(jobId))
+
+    if (!job) {
+        throw new Error("Job tidak ada")
+    }
+
+    if (job.mode === "group") {
+        return startGroupCrawler(jobId, concurrency)
+    }
+
+    // Mempertahankan kompatibilitas Project Job.
+    return startProjectCrawler(jobId)
+}
+
+
 export default {
     startProjectCrawler,
-    startGroupCrawler
+    startGroupCrawler,
+    startCrawler
 }
