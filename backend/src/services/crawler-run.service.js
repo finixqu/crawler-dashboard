@@ -43,6 +43,12 @@ const monitorJob = async (jobId, sessionName, exitFile) => {
             }
 
             await fs.rm(exitFile, { force: true })
+
+            // Tutup session tmux setelah crawler benar-benar selesai.
+            if (await tmuxService.hasSession(sessionName)) {
+                await tmuxService.killSession(sessionName)
+            }
+
             return
 
         } catch (err) {
