@@ -27,7 +27,8 @@ function formatCrawlerDate(value) {
     if (typeof value === "string") {
         // Format YYYY-MM-DD HH:mm atau YYYY-MM-DDTHH:mm
         const dateTimeMatch = value.match(
-            /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$/
+            // /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$/
+            /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::\d{2})?$/
         )
 
         if (dateTimeMatch) {

@@ -325,8 +325,7 @@ stop_group_containers() {
 
     while [ "$empty_checks" -lt 3 ]; do
         local container_ids
-        container_ids=$(docker ps -aq --filter "label=crawler-group-job=$JOB_ID")
-
+        container_ids=$(docker ps -q --filter "label=crawler-group-job=$JOB_ID")
         if [ -n "$container_ids" ]; then
             empty_checks=0
             docker stop --time 5 $container_ids || true
