@@ -114,6 +114,14 @@ const loadJobs = async (silent = false) => {
     }
 
     jobs.value = response.data || []
+    
+    // Hapus indikator Stopping jika job sudah mencapai status akhir.
+    stoppingJobIds.value = stoppingJobIds.value.filter(id => {
+      const job = jobs.value.find(item => item.id === id)
+
+      return job && ['starting', 'running'].includes(job.status)
+    })
+
   } catch (err) {
     console.error('Gagal memuat job:', err)
     jobsError.value =
@@ -219,14 +227,15 @@ const stopJobCrawler = async (job) => {
   } catch (err) {
     console.error('Gagal menghentikan crawler:', err)
 
+    stoppingJobIds.value =
+    stoppingJobIds.value.filter(id => id !== job.id)
+
+
     startCrawlerError.value =
       err.response?.data?.message ||
       err.message ||
       `Gagal menghentikan job #${job.id}.`
   } finally {
-    stoppingJobIds.value =
-      stoppingJobIds.value.filter(id => id !== job.id)
-
     await loadJobs(true)
   }
 }
