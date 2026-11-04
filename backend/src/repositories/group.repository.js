@@ -1,6 +1,6 @@
 import db from '../config/database.js'
 
-const findAllACtive = async () => {
+const findAllActive = async () => {
     const sql = `
         SELECT
             id,
@@ -36,6 +36,6 @@ const findById = async (id) => {
 
 
 export default {
-    findAllACtive,
+    findAllActive,
     findById
 }
