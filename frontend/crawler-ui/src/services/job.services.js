@@ -77,6 +77,23 @@ const getJobLog = async (jobId) => {
     return res.data
 }
 
+// Mengambil daftar Project ID yang memiliki log individual.
+const getGroupProjectLogs = async (jobId) => {
+    const res = await api.get(`/jobs/${jobId}/project-logs`)
+
+    return res.data
+}
+
+
+// Mengambil isi log individual berdasarkan Project ID.
+const getGroupProjectLog = async (jobId, projectId) => {
+    const res = await api.get(
+        `/jobs/${jobId}/project-logs/${projectId}`
+    )
+
+    return res.data
+}
+
 
 // Mengambil daftar job.
 const getJobs = async (params = {}) => {
@@ -86,9 +103,6 @@ const getJobs = async (params = {}) => {
 }
 
 
-// ========================================
-// EXPORT
-// ========================================
 
 export default {
     // Project Job
@@ -105,5 +119,7 @@ export default {
 
     // Monitoring
     getJobLog,
-    getJobs
+    getJobs,
+    getGroupProjectLogs,
+    getGroupProjectLog
 }
