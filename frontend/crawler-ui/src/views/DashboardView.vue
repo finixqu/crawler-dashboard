@@ -308,6 +308,7 @@ const statusLabel = (status) => {
     running: 'Running',
     success: 'Success',
     failed: 'Failed',
+    stopped: 'Stopped',
   }
 
   return labels[status] || status || '-'
@@ -321,6 +322,7 @@ const statusClass = (status) => {
     running: 'bg-emerald-500/10 text-emerald-400',
     success: 'bg-green-500/10 text-green-400',
     failed: 'bg-red-500/10 text-red-400',
+    stopped: 'bg-slate-700 text-slate-300',
   }
 
   return classes[status] || 'bg-slate-700 text-slate-300'
@@ -668,7 +670,9 @@ onUnmounted(() => {
               </td>
 
               <td class="whitespace-nowrap px-5 py-4 text-slate-300">
-                {{ job.project_id || '-' }}
+                {{ job.mode === 'group' ? (job.group_display_name || job.group_name || `Group #${job.group_id}`) 
+                  : (job.project_id || '-')
+                 }}
               </td>
 
               <td class="whitespace-nowrap px-5 py-4 text-slate-400">
