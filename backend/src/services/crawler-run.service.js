@@ -220,30 +220,70 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
             job.id
         )
 
-        // Membentuk satu perintah Docker untuk setiap project ID.
-        const commands = group.projectIds.map(projectId => {
-            const crawlerCommand = crawlerService.buildCrawlerCommand({
-                platform: job.platform,
-                projectId,
-                since: job.since,
-                until: job.until
-            })
+        // Membuat folder untuk menyimpan log setiap project.
+        const projectLogsDir = `${log.logPath}.projects`
 
-            // Label unik untuk mengidentifikasi container milik Group Job.
-            crawlerCommand.args.splice(
-                2,
-                0,
-                "--label",
-                `crawler-group-job=${job.id}`
-            )
-
-            return [
-                crawlerCommand.command,
-                ...crawlerCommand.args
-            ]
-                .map(crawlerService.shellQuote)
-                .join(" ")
+        await fs.mkdir(projectLogsDir, {
+            recursive: true
         })
+
+        // Membentuk perintah Docker dan log individual setiap project.
+        const commands = await Promise.all(
+            group.projectIds.map(async projectId => {
+                const crawlerCommand = crawlerService.buildCrawlerCommand({
+                    platform: job.platform,
+                    projectId,
+                    since: job.since,
+                    until: job.until
+                })
+
+                // Label unik untuk mengidentifikasi container Group Job.
+                crawlerCommand.args.splice(
+                    2,
+                    0,
+                    "--label",
+                    `crawler-group-job=${job.id}`
+                )
+
+                const dockerCommand = [
+                    crawlerCommand.command,
+                    ...crawlerCommand.args
+                ]
+                    .map(crawlerService.shellQuote)
+                    .join(" ")
+
+                // Lokasi log khusus project.
+                const projectLogPath =
+                    `${projectLogsDir}/project-${projectId}.log`
+
+                // Membuat file log baru dan memberikan informasi project.
+                await fs.writeFile(
+                    projectLogPath,
+                    [
+                        `Project ID: ${projectId}`,
+                        `Group Job ID: ${job.id}`,
+                        `Platform: ${job.platform}`,
+                        `Since: ${job.since}`,
+                        `Until: ${job.until}`,
+                        `Command: ${dockerCommand}`,
+                        "",
+                        "========== CRAWLER OUTPUT ==========",
+                        ""
+                    ].join("\n"),
+                    "utf8"
+                )
+
+                // Setiap crawler mengirim output ke log individual.
+                const commandDenganLog =
+                    `bash -o pipefail -c ${
+                        crawlerService.shellQuote(
+                            `${dockerCommand} 2>&1 | tee -a ${crawlerService.shellQuote(projectLogPath)}`
+                        )
+                    }`
+
+                return commandDenganLog
+            })
+        )
 
         // Menyimpan seluruh perintah ke file khusus job.
         const commandsFile = `${log.logPath}.commands.txt`
@@ -253,6 +293,7 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
             `${commands.join("\n")}\n`,
             "utf8"
         )
+
 
         const exitFile = `${log.logPath}.exit.log`
         const runnerFile = `${log.logPath}.run.sh`

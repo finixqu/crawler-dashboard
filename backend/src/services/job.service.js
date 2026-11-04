@@ -1,3 +1,6 @@
+import fs from 'node:fs/promises'
+import path from 'node:path'
+
 import platformRepository from '../repositories/platform.repository.js'
 import jobRepository from '../repositories/job.repository.js'
 import tmuxService from './tmux.service.js'
@@ -207,10 +210,95 @@ const getJobLog = async (jobId) => {
     }
 }
 
+// Mengambil daftar log individual milik Group Job.
+const getGroupProjectLogs = async (jobId) => {
+    const id = Number(jobId)
+
+    if (!Number.isInteger(id) || id <= 0) {
+        throw new Error('Job ID Tidak Valid')
+    }
+
+    const job = await jobRepository.findById(id)
+
+    if (!job) {
+        throw new Error('Job Tidak Ditemukan')
+    }
+
+    if (job.mode !== 'group' || !job.log_path) {
+        throw new Error('Job ini bukan Group Job')
+    }
+
+    const projectLogsDir = `${job.log_path}.projects`
+
+    const files = await fs.readdir(projectLogsDir)
+
+    const projectIds = files
+        .map(file => {
+            const match = file.match(/^project-(\d+)\.log$/)
+            return match ? match[1] : null
+        })
+        .filter(Boolean)
+        .sort((a, b) => Number(a) - Number(b))
+
+    return {
+        jobId: job.id,
+        groupId: job.group_id,
+        groupName: job.group_display_name || job.group_name,
+        totalProjectLogs: projectIds.length,
+        projectIds
+    }
+}
+
+
+// Mengambil isi log individual berdasarkan Project ID.
+const getGroupProjectLog = async (jobId, projectId) => {
+    const id = Number(jobId)
+    const parsedProjectId = String(projectId)
+
+    if (!Number.isInteger(id) || id <= 0) {
+        throw new Error('Job ID Tidak Valid')
+    }
+
+    if (!/^\d+$/.test(parsedProjectId)) {
+        throw new Error('Project ID Tidak Valid')
+    }
+
+    const job = await jobRepository.findById(id)
+
+    if (!job) {
+        throw new Error('Job Tidak Ditemukan')
+    }
+
+    if (job.mode !== 'group' || !job.log_path) {
+        throw new Error('Job ini bukan Group Job')
+    }
+
+    const projectLogsDir = `${job.log_path}.projects`
+
+    const projectLogPath = path.join(
+        projectLogsDir,
+        `project-${parsedProjectId}.log`
+    )
+
+    const log = await logService.readJobLog(projectLogPath)
+
+    return {
+        jobId: job.id,
+        projectId: parsedProjectId,
+        groupName: job.group_display_name || job.group_name,
+        status: job.status,
+        content: log.content,
+        truncated: log.truncated
+    }
+}
+
+
 export default {
     createProjectJob,
     createGroupJob,
     findAllJobs,
     stopJobCrawler,
-    getJobLog
+    getJobLog,
+    getGroupProjectLogs,
+    getGroupProjectLog
 }

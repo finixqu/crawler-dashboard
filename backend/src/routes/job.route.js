@@ -12,6 +12,8 @@ router.post('/:id/stop', jobController.stopJobCrawler)
 
 router.get('/', jobController.getJobs)
 router.get('/:id/log', jobController.getJobLog)
+router.get('/:id/project-logs', jobController.getGroupProjectLogs)
+router.get('/:id/project-logs/:projectId', jobController.getGroupProjectLog)
 
 
 export default router

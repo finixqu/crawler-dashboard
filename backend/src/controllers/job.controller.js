@@ -144,11 +144,72 @@ const getJobLog = async (req, res) => {
 }
 
 
+// Mengambil daftar Project ID yang memiliki log individual.
+const getGroupProjectLogs = async (req, res) => {
+    try {
+        const result = await jobService.getGroupProjectLogs(
+            req.params.id
+        )
+
+        return res.json({
+            success: true,
+            message: 'Daftar log project berhasil diambil',
+            data: result
+        })
+
+    } catch (err) {
+        console.error(err)
+
+        const statusCode = err.code === 'ENOENT' ? 404 : 400
+
+        return res.status(statusCode).json({
+            success: false,
+            message: err.code === 'ENOENT'
+                ? 'Folder log project belum tersedia'
+                : err.message,
+            data: null
+        })
+    }
+}
+
+
+// Mengambil isi log berdasarkan Project ID.
+const getGroupProjectLog = async (req, res) => {
+    try {
+        const result = await jobService.getGroupProjectLog(
+            req.params.id,
+            req.params.projectId
+        )
+
+        return res.json({
+            success: true,
+            message: 'Log project berhasil diambil',
+            data: result
+        })
+
+    } catch (err) {
+        console.error(err)
+
+        const statusCode = err.code === 'ENOENT' ? 404 : 400
+
+        return res.status(statusCode).json({
+            success: false,
+            message: err.code === 'ENOENT'
+                ? 'File log project belum tersedia'
+                : err.message,
+            data: null
+        })
+    }
+}
+
 
 export default {
     createProjectJob,
     createGroupJob,
     getJobs,
     stopJobCrawler,
-    getJobLog
+    getJobLog,
+    getGroupProjectLogs,
+    getGroupProjectLog
 }
+    
