@@ -7,86 +7,146 @@ import tmuxService from "./tmux.service.js"
 import logService from "./log.service.js"
 
 
+// Menyimpan ID job yang sedang dipantau oleh proses backend ini.
+const activeMonitors = new Set()
+
+
 // Memantau status job.
 const monitorJob = async (jobId, sessionName, exitFile) => {
-    while (true) {
-        try {
-            const exitCodeText = await fs.readFile(exitFile, "utf8")
-            const exitCode = Number(exitCodeText.trim())
+    if (activeMonitors.has(jobId)) {
+        return
+    }
 
-            if (!Number.isInteger(exitCode)) {
-                throw new Error(`Exit code tidak valid: ${exitCodeText}`)
+    activeMonitors.add(jobId)
+
+    try {
+        while (true) {
+            try {
+                const exitCodeText = await fs.readFile(exitFile, "utf8")
+                const exitCode = Number(exitCodeText.trim())
+
+                if (!Number.isInteger(exitCode)) {
+                    throw new Error(
+                        `Exit code tidak valid: ${exitCodeText}`
+                    )
+                }
+
+                const job = await jobRepository.findById(jobId)
+
+                if (!job) {
+                    return
+                }
+
+                if (job.error_message === "Crawler Di Hentikan") {
+                    await jobRepository.updateFinished(
+                        jobId,
+                        "stopped",
+                        "Crawler Di Hentikan"
+                    )
+                } else if (exitCode === 0) {
+                    await jobRepository.updateFinished(
+                        jobId,
+                        "success"
+                    )
+                } else {
+                    await jobRepository.updateFinished(
+                        jobId,
+                        "failed",
+                        `Crawler berhenti dengan exit code ${exitCode}`
+                    )
+                }
+
+                await fs.rm(exitFile, { force: true })
+
+                if (await tmuxService.hasSession(sessionName)) {
+                    await tmuxService.killSession(sessionName)
+                }
+
+                return
+
+            } catch (err) {
+                if (err.code !== "ENOENT") {
+                    throw err
+                }
             }
 
-            const job = await jobRepository.findById(jobId)
+            const sessionExist = await tmuxService.hasSession(sessionName)
 
-            if (
-                job?.mode === "group" &&
-                job?.error_message === "Crawler Di Hentikan"
-            ) {
-                await jobRepository.updateFinished(
-                    jobId,
-                    "stopped",
-                    "Crawler Di Hentikan"
-                )
-            } else if (exitCode === 0) {
-                await jobRepository.updateFinished(
-                    jobId,
-                    "success"
-                )
-            } else {
-                await jobRepository.updateFinished(
-                    jobId,
-                    "failed",
-                    `Crawler berhenti dengan exit code ${exitCode}`
-                )
-            }
+            if (!sessionExist) {
+                const job = await jobRepository.findById(jobId)
 
-            await fs.rm(exitFile, { force: true })
+                if (!job) {
+                    return
+                }
 
-            // Tutup session tmux setelah crawler benar-benar selesai.
-            if (await tmuxService.hasSession(sessionName)) {
-                await tmuxService.killSession(sessionName)
-            }
-
-            return
-
-        } catch (err) {
-            if (err.code !== "ENOENT") {
-                throw err
-            }
-        }
-
-        const sessionExist = await tmuxService.hasSession(sessionName)
-
-        if (!sessionExist) {
-            const job = await jobRepository.findById(jobId)
-
-            if (job?.error_message === "Crawler Di Hentikan") {
-                const finalStatus =
-                    job.mode === "group" ? "stopped" : "failed"
+                const stopped =
+                    job.error_message === "Crawler Di Hentikan"
 
                 await jobRepository.updateFinished(
                     jobId,
-                    finalStatus,
-                    "Crawler Di Hentikan"
+                    stopped ? "stopped" : "failed",
+                    stopped
+                        ? "Crawler Di Hentikan"
+                        : "Sesi tmux berakhir sebelum exit code tercatat"
                 )
 
                 return
             }
 
-            await jobRepository.updateFinished(
-                jobId,
-                "failed",
-                "Sesi tmux berakhir sebelum exit code tercatat"
-            )
-
-            return
+            await new Promise(resolve => setTimeout(resolve, 2000))
         }
-
-        await new Promise(resolve => setTimeout(resolve, 2000))
+    } finally {
+        activeMonitors.delete(jobId)
     }
 }
+
+// Memulihkan pemantauan job setelah backend restart.
+const recoverActiveJobs = async () => {
+    const jobs = await jobRepository.findActiveJobs()
+
+    console.log(
+        `[JOB RECOVERY] Menemukan ${jobs.length} job aktif.`
+    )
+
+    for (const job of jobs) {
+        const sessionName =
+            job.tmux_session || `crawler-job-${job.id}`
+
+        const exitFile = `${job.log_path}.exit.log`
+
+        console.log(
+            `[JOB RECOVERY] Memulihkan monitor Job #${job.id}`
+        )
+
+        void monitorJob(
+            job.id,
+            sessionName,
+            exitFile
+        ).catch(async err => {
+            console.error(
+                `[JOB RECOVERY] Gagal memonitor Job #${job.id}:`,
+                err
+            )
+
+            try {
+                await jobRepository.updateFinished(
+                    job.id,
+                    "failed",
+                    err.message
+                )
+            } catch (updateError) {
+                console.error(
+                    `[JOB RECOVERY] Gagal memperbarui Job #${job.id}:`,
+                    updateError
+                )
+            }
+        })
+    }
+
+    return jobs.length
+}
+
+
 
 
 // Menjalankan Project Job.
@@ -455,5 +515,6 @@ const startCrawler = async (jobId, concurrency = 10) => {
 export default {
     startProjectCrawler,
     startGroupCrawler,
-    startCrawler
+    startCrawler,
+    recoverActiveJobs
 }

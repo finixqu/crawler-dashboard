@@ -232,6 +232,25 @@ const findAll = async ({
 }
 
 
+const findActiveJobs = async () => {
+    const sql = `
+        SELECT
+            id,
+            mode,
+            status,
+            tmux_session,
+            log_path,
+            error_message
+        FROM crawler_jobs
+        WHERE status IN ('starting', 'running')
+        ORDER BY id ASC
+    `
+
+    const [rows] = await db.execute(sql)
+    return rows
+}
+
+
 // Menandai job yang diminta berhenti.
 const updateStopRequested = async (id) => {
     const sql = `
@@ -255,5 +274,6 @@ export default {
     updateRunning,
     updateStopRequested,
     updateFinished,
-    findAll
+    findAll,
+    findActiveJobs
 }
