@@ -20,7 +20,7 @@ const successMessage = ref('')
 const form = ref({
   platformId: '',
   projectId: '',
-  since: '',
+  since: `${new Date().toISOString().slice(0, 10)}T00:00`,
   until: ''
 })
 
@@ -278,7 +278,7 @@ onMounted(() => {
               for="since"
               class="mb-2 block text-sm font-medium text-slate-300"
             >
-              Since
+              Since <span class="text-blue-200 ml-24">AM: 00:00–11:59 dan PM: 12:00–23:59</span>
             </label>
 
 
@@ -300,7 +300,7 @@ onMounted(() => {
               for="until"
               class="mb-2 block text-sm font-medium text-slate-300"
             >
-              Until
+              Until <span class="text-blue-200 ml-24">AM: 00:00–11:59 dan PM: 12:00–23:59</span>
             </label>
 
 
