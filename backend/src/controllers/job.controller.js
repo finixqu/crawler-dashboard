@@ -66,32 +66,70 @@ const createGroupJob = async (req, res) => {
 
 const getJobs = async (req, res) => {
     try {
+        const {
+            projectId,
+            status,
+            page,
+            limit
+        } = req.query
 
-        const { projectId, status} = req.query
+        // Validasi pagination.
+        const parsedPage = Number.parseInt(page, 10)
+        const parsedLimit = Number.parseInt(limit, 10)
 
-        const jobs = await jobService.findAllJobs({
+        const currentPage =
+            Number.isInteger(parsedPage) && parsedPage > 0
+                ? parsedPage
+                : 1
+
+        const perPage =
+            Number.isInteger(parsedLimit) && parsedLimit > 0
+                ? Math.min(parsedLimit, 50)
+                : 50
+
+        const offset = (currentPage - 1) * perPage
+
+        // Filter yang digunakan bersama oleh query data dan total.
+        const filters = {
             projectId: projectId || null,
             status: status || null
-        })
+        }
 
-        if(!jobs) throw new Error('gagal mencari data')
-        
+        // Ambil data dan total secara bersamaan.
+        const [jobs, total] = await Promise.all([
+            jobService.findAllJobs({
+                ...filters,
+                limit: perPage,
+                offset
+            }),
+            jobService.countAllJobs(filters)
+        ])
+
         return res.json({
             success: true,
             message: "Data Ditemukan",
-            data: jobs
+            data: jobs,
+            pagination: {
+                currentPage,
+                limit: perPage,
+                total,
+                totalPages: Math.ceil(total / perPage),
+                hasNextPage: offset + jobs.length < total,
+                hasPreviousPage: currentPage > 1
+            }
         })
+
     } catch (err) {
         console.error(err)
 
         return res.status(500).json({
             success: false,
             message: "data error",
-            data: []
+            data: [],
+            pagination: null
         })
     }
 }
-
 
 const stopJobCrawler = async (req, res) => {
     const id = Number(req.params.id)

@@ -266,6 +266,37 @@ const updateStopRequested = async (id) => {
 }
 
 
+const countAll = async ({ projectId, status}) => {
+    let sql = `
+        SELECT COUNT(*) AS total
+        FROM crawler_jobs cj
+    `
+
+    const conditions = []
+    const params = []
+
+    if(projectId) {
+        conditions.push('cj.projectId = ?')
+        params.push(projectId)
+    }
+
+    if(status) {
+        conditions.push('cj.status = ?')
+        params.push(status)
+    }
+
+    if (conditions.length > 0){
+        sql += `
+            WHERE ${conditions.join(' AND ')}
+        `
+    }
+
+    const [rows] = await db.execute(sql, params)
+
+    return Number(rows[0]?.total || null)
+}
+
+
 export default {
     createProjectJob,
     createGroupJob,
@@ -275,5 +306,6 @@ export default {
     updateStopRequested,
     updateFinished,
     findAll,
+    countAll,
     findActiveJobs
 }

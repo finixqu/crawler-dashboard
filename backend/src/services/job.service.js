@@ -116,6 +116,11 @@ const findAllJobs = async (filters = {}) => {
     return jobRepository.findAll(filters)
 }
 
+// Menghitung total job berdasarkan filter.
+const countAllJobs = async (filters = {}) => {
+    return jobRepository.countAll(filters)
+}
+
 
 const stopJobCrawler = async (jobId) => {
     const id = Number(jobId)
@@ -297,6 +302,7 @@ export default {
     createProjectJob,
     createGroupJob,
     findAllJobs,
+    countAllJobs,
     stopJobCrawler,
     getJobLog,
     getGroupProjectLogs,
