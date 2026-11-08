@@ -11,7 +11,20 @@ const jobsLoading = ref(false)
 
 const error = ref(null)
 const jobsError = ref(null)
+const statsJobs = ref([])
 
+// Pagination Recent Jobs
+const currentPage = ref(1)
+const pageLimit = ref(10)
+
+const pagination = ref({
+  currentPage: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPreviousPage: false
+})
 
 // untuk memulai/mengulang job yang pending/gagal 
 const startingJobIds = ref([])
@@ -33,9 +46,6 @@ const selectedLog = ref(null)
 const logLoading = ref(false)
 const logError = ref('')
 
-
-
-
 //menyimpan timer
 let refreshTimer = null
 
@@ -47,7 +57,7 @@ let JobRequestProgres = ref(false)
 
 //jumlah data job dari backend
 const stats = computed(() => {
-  const allJobs = jobs.value
+  const allJobs = statsJobs.value
 
   return {
     running: allJobs.filter(
@@ -104,16 +114,43 @@ const loadJobs = async (silent = false) => {
 
     jobsError.value = ''
 
-    const response = await jobServices.getJobs({
-      projectId: filterProjectId.value || undefined,
-      status: filterStatus.value || undefined
-    })
-
-    if (!response.success) {
-      throw new Error(response.message || 'Gagal memuat job.')
+    const filters = {
+      projectId: filterProjectId.value || null,
+      status: filterStatus.value || null
     }
 
-    jobs.value = response.data || []
+    //ambil data halaman yg aktif dan data statistiknya
+    const [jobsResponse, statsResponse] = await Promise.all([
+      jobServices.getJobs({
+        ...filters,
+        page: currentPage.value,
+        limit: pageLimit.value
+      }),
+
+      jobServices.getJobs({
+        ...filters,
+        page: 1,
+        limit: 50
+      })
+    ])
+
+
+
+
+    if (!jobsResponse.success) {
+      throw new Error(jobsResponse.message || 'Gagal memuat jobs.')
+    }
+
+    if(!statsResponse.success) {
+      throw new Error(statsResponse.message || 'gagal memuat statistik')
+    }
+
+    jobs.value = jobsResponse.data || []
+    stats.value = statsResponse.data || []
+
+    pagination.value = jobsResponse.pagination || pagination.value
+
+    currentPage.value = pagination.value.currentPage
     
     // Hapus indikator Stopping jika job sudah mencapai status akhir.
     stoppingJobIds.value = stoppingJobIds.value.filter(id => {
@@ -281,6 +318,7 @@ const closeJobLog = () => {
 
 // Menerapkan filter.
 const applyJobFilters = () => {
+  currentPage.value = 1
   loadJobs()
 }
 
@@ -288,7 +326,22 @@ const applyJobFilters = () => {
 const resetJobFilters = () => {
   filterProjectId.value = ''
   filterStatus.value = ''
+  currentPage.value = 1
 
+  loadJobs()
+}
+
+// Pindah halaman.
+const changePage = (page) => {
+  if (page < 1 || page > pagination.value.totalPages) return
+
+  currentPage.value = page
+  loadJobs()
+}
+
+// Mengubah jumlah data per halaman.
+const changePageLimit = () => {
+  currentPage.value = 1
   loadJobs()
 }
 
@@ -746,11 +799,61 @@ onUnmounted(() => {
         </table>
       </div>
 
+      <!-- Pagination -->
       <div
-        v-if="!jobsLoading && !jobsError && jobs.length > 0"
-        class="border-t border-slate-800 px-5 py-3 text-xs text-slate-500"
+        v-if="!jobsLoading && !jobsError && pagination.total > 0"
+        class="flex flex-col gap-4 border-t border-slate-800 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
       >
-        Menampilkan {{ jobs.length }} job terbaru.
+        <!-- Informasi data -->
+        <div class="text-xs text-slate-400">
+          Menampilkan
+          {{ (currentPage - 1) * pageLimit + 1 }}
+          -
+          {{ Math.min(currentPage * pageLimit, pagination.total) }}
+          dari
+          {{ pagination.total }}
+          job
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+
+          <!-- Limit -->
+          <select
+            v-model.number="pageLimit"
+            class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white outline-none focus:border-blue-500"
+            @change="changePageLimit"
+          >
+            <option :value="10">10 / halaman</option>
+            <option :value="20">20 / halaman</option>
+            <option :value="50">50 / halaman</option>
+          </select>
+
+          <!-- Previous -->
+          <button
+            type="button"
+            class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="!pagination.hasPreviousPage || jobsLoading"
+            @click="changePage(currentPage - 1)"
+          >
+            Previous
+          </button>
+
+          <!-- Page info -->
+          <span class="text-xs text-slate-400">
+            Halaman {{ currentPage }} / {{ pagination.totalPages }}
+          </span>
+
+          <!-- Next -->
+          <button
+            type="button"
+            class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="!pagination.hasNextPage || jobsLoading"
+            @click="changePage(currentPage + 1)"
+          >
+            Next
+          </button>
+
+        </div>
       </div>
 
     </div>
