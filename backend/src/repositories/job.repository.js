@@ -276,7 +276,7 @@ const countAll = async ({ projectId, status}) => {
     const params = []
 
     if(projectId) {
-        conditions.push('cj.projectId = ?')
+        conditions.push('cj.project_id = ?')
         params.push(projectId)
     }
 
