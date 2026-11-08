@@ -146,7 +146,7 @@ const loadJobs = async (silent = false) => {
     }
 
     jobs.value = jobsResponse.data || []
-    stats.value = statsResponse.data || []
+    statsJobs.value = statsResponse.data || []
 
     pagination.value = jobsResponse.pagination || pagination.value
 

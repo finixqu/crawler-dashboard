@@ -16,12 +16,16 @@ const emit = defineEmits(["close"])
 
   <aside
     class="
-      fixed inset-y-0 left-0 w-64 shrink-0 border-r border-slate-800 bg-slate-900
+      fixed inset-y-0 left-0 flex w-64 flex-col
+      shrink-0 border-r border-slate-800 bg-slate-900
+      overflow-y-auto
       transform
       transition-transform
       duration-300
       ease-in-out
-      lg:static
+      lg:sticky
+      lg:top-0
+      lg:h-screen
       lg:translate-x-0
       
     "
