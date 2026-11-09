@@ -12,8 +12,18 @@ const startServer = async () => {
         const PORT = process.env.PORT || 3000
 
         app.listen(PORT, () => {
-        console.log(`Server Berjalan Di Port ${PORT}`)
-})
+            console.log(`Server Berjalan Di Port ${PORT}`)
+        })
+
+         // Periksa jadwal langsung saat backend dinyalakan.
+        void crawlerRunService.processDueScheduledJobs()
+
+        setInterval(() => {
+            void crawlerRunService.processDueScheduledJobs()
+        }, 5000);
+
+        console.log('[SCHEDULER] Pemeriksaan jadwal aktif setiap 5 detik.')
+
     } catch (error) {
         console.error('gagal melakukan recovery', error)
     }

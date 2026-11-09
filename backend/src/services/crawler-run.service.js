@@ -10,6 +10,8 @@ import logService from "./log.service.js"
 // Menyimpan ID job yang sedang dipantau oleh proses backend ini.
 const activeMonitors = new Set()
 
+// Mencegah job terjadwal diproses berulang dalam satu proses backend.
+const scheduledJobsInProgress = new Set()
 
 // Memantau status job.
 const monitorJob = async (jobId, sessionName, exitFile) => {
@@ -511,10 +513,78 @@ const startCrawler = async (jobId, concurrency = 10) => {
     return startProjectCrawler(jobId)
 }
 
+// Memeriksa dan menjalankan job yang jadwalnya sudah tiba.
+const processDueScheduledJobs = async () => {
+    let jobs
+
+    try {
+        jobs = await jobRepository.findDueScheduledJobs()
+    } catch (err) {
+        console.error("[SCHEDULER] Gagal mengambil job terjadwal:", err)
+        return
+    }
+
+    for (const item of jobs) {
+        const jobId = Number(item.id)
+
+        if (scheduledJobsInProgress.has(jobId)) {
+            continue
+        }
+
+        scheduledJobsInProgress.add(jobId)
+
+        try {
+            const job = await jobRepository.findById(jobId)
+
+            if (!job || job.status !== "pending") {
+                continue
+            }
+
+            const concurrency =
+                job.mode === "group"
+                    ? Number(job.scheduled_concurrency || 10)
+                    : 10
+
+            console.log(
+                `[SCHEDULER] Menjalankan Job #${jobId}`
+            )
+
+            await startCrawler(jobId, concurrency)
+
+            console.log(
+                `[SCHEDULER] Job #${jobId} berhasil dijalankan`
+            )
+
+        } catch (err) {
+            console.error(
+                `[SCHEDULER] Gagal menjalankan Job #${jobId}:`,
+                err
+            )
+
+            try {
+                await jobRepository.updateFinished(
+                    jobId,
+                    "failed",
+                    err.message
+                )
+            } catch (updateError) {
+                console.error(
+                    `[SCHEDULER] Gagal memperbarui Job #${jobId}:`,
+                    updateError
+                )
+            }
+
+        } finally {
+            scheduledJobsInProgress.delete(jobId)
+        }
+    }
+}
+
 
 export default {
     startProjectCrawler,
     startGroupCrawler,
     startCrawler,
+    processDueScheduledJobs,
     recoverActiveJobs
 }
