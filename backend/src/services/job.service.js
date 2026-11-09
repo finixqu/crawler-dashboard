@@ -87,7 +87,7 @@ const createProjectJob = async ({ platformId, projectId, since, until, scheduled
 
     if (!platform) throw new Error('Platform tidak ditemukan.')
 
-    const normalizedSchedule = normalizedScheduledAt(scheduledAt)
+    const normalizedSchedule = normalizeScheduledAt(scheduledAt)
 
 
     const jobId = await jobRepository.createProjectJob({
@@ -95,7 +95,7 @@ const createProjectJob = async ({ platformId, projectId, since, until, scheduled
             projectId,
             since,
             until,
-            scheduledAt: normalizedScheduledAt
+            scheduledAt: normalizedSchedule
         })
 
     return jobRepository.findById(jobId)
@@ -154,7 +154,7 @@ const createGroupJob = async ({ platformId, groupId, since, until, scheduledAt =
     const normalizedSchedule = normalizeScheduledAt(scheduledAt)
 
     //validasi concurrency
-    const parsedConcurrency = normalizeScheduledAt(scheduledConcurrency)
+    const parsedConcurrency = Number(scheduledConcurrency)
 
     if (
         !Number.isInteger(parsedConcurrency) ||
