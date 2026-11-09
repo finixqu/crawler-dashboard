@@ -1,6 +1,6 @@
 import db from '../config/database.js'
 
-const createProjectJob = async ({ platformId, projectId, since, until }) => {
+const createProjectJob = async ({ platformId, projectId, since, until, scheduledAt = null }) => {
     const sql = `
         INSERT INTO crawler_jobs (
             platform_id,
@@ -8,23 +8,26 @@ const createProjectJob = async ({ platformId, projectId, since, until }) => {
             project_id,
             since,
             until,
-            status
+            scheduled_at
+            status,
+            
         )
-        VALUES (?, 'project', ?, ?, ?, 'pending')
+        VALUES (?, 'project', ?, ?, ?, ?, 'pending' )
     `
 
     const [result] = await db.execute(sql, [
         platformId,
         projectId,
         since,
-        until
+        until,
+        scheduledAt
     ])
 
     return result.insertId
 }
 
 
-const createGroupJob = async ({ platformId, groupId, since, until }) => {
+const createGroupJob = async ({ platformId, groupId, since, until, scheduledAt = null, scheduledConcurency = 10 }) => {
     const sql = `
         INSERT INTO crawler_jobs (
             platform_id,
@@ -32,16 +35,20 @@ const createGroupJob = async ({ platformId, groupId, since, until }) => {
             group_id,
             since,
             until,
+            scheduled_at,
+            scheduled_concurency,
             status
         )
-        VALUES (?, 'group', ?, ?, ?, 'pending')
+        VALUES (?, 'group', ?, ?, ?, ?, ? 'pending')
     `
 
     const [result] = await db.execute(sql, [
         platformId,
         groupId,
         since,
-        until
+        until,
+        scheduledAt,
+        scheduledConcurency
     ])
 
     return result.insertId
@@ -59,6 +66,8 @@ const findById = async (id) => {
             cj.group_id,
             cj.since,
             cj.until,
+            cj.scheduled_at,
+            cj.scheduled_concurrency,
             cj.status,
             cj.tmux_session,
             cj.log_path,
@@ -168,6 +177,8 @@ const findAll = async ({
             cj.group_id,
             cj.since,
             cj.until,
+            cj.scheduled_at,
+            cj.scheduled_concurrency,
             cj.status,
             cj.tmux_session,
             cj.log_path,
@@ -227,6 +238,22 @@ const findAll = async ({
     `
 
     const [rows] = await db.execute(sql, params)
+
+    return rows
+}
+
+
+const findDueScheduledJobs = async () => {
+    const sql = `
+        SELECT id
+        FROM crawler_jobs
+        WHERE status = 'pending'
+          AND scheduled_at IS NOT NULL
+          AND scheduled_at <= NOW()
+        ORDER BY scheduled_at ASC
+    `
+
+    const [rows] = await db.execute(sql)
 
     return rows
 }
@@ -307,5 +334,6 @@ export default {
     updateFinished,
     findAll,
     countAll,
-    findActiveJobs
+    findActiveJobs,
+    findDueScheduledJobs
 }
