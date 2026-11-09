@@ -5,14 +5,16 @@ const createProjectJob = async (req, res) => {
         platformId,
         projectId,
         since,
-        until
+        until,
+        scheduledAt
     } = req.body
     try {
         const job = await jobService.createProjectJob({
             platformId,
             projectId,
             since,
-            until
+            until,
+            scheduledAt
         })
 
         return res.json({
@@ -36,7 +38,9 @@ const createGroupJob = async (req, res) => {
         platformId,
         groupId,
         since,
-        until
+        until,
+        scheduledAt = null,
+        scheduledConcurrency = 10
     } = req.body
 
     try {
@@ -44,7 +48,9 @@ const createGroupJob = async (req, res) => {
             platformId,
             groupId,
             since,
-            until
+            until,
+            scheduledAt,
+            scheduledConcurrency
         })
 
         return res.json({

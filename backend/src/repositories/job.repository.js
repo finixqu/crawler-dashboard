@@ -10,7 +10,6 @@ const createProjectJob = async ({ platformId, projectId, since, until, scheduled
             until,
             scheduled_at,
             status
-            
         )
         VALUES (?, 'project', ?, ?, ?, ?, 'pending' )
     `

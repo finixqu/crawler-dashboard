@@ -7,7 +7,55 @@ import tmuxService from './tmux.service.js'
 import logService from './log.service.js'
 import groupRepository from '../repositories/group.repository.js'
 
-const createProjectJob = async ({ platformId, projectId, since, until}) => {
+// Memvalidasi dan mengubah jadwal ke format MySQL DATETIME.
+const normalizeScheduledAt = (value) => {
+    if (value === undefined || value === null || value === '') {
+        return null
+    }
+
+    if (typeof value !== 'string') {
+        throw new Error('Format jadwal tidak valid')
+    }
+
+    const match = value.trim().match(
+        /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/
+    )
+
+    if (!match) {
+        throw new Error('Format jadwal tidak valid')
+    }
+
+    const [
+        ,
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second = '00'
+    ] = match
+
+    const date = new Date(Date.UTC(
+        Number(year),
+        Number(month) - 1,
+        Number(day)
+    ))
+
+    if (
+        date.getUTCFullYear() !== Number(year) ||
+        date.getUTCMonth() + 1 !== Number(month) ||
+        date.getUTCDate() !== Number(day) ||
+        Number(hour) > 23 ||
+        Number(minute) > 59 ||
+        Number(second) > 59
+    ) {
+        throw new Error('Tanggal atau waktu jadwal tidak valid')
+    }
+
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`
+}
+
+const createProjectJob = async ({ platformId, projectId, since, until, scheduledAt = null }) => {
     //verifikasi platform
     if(!platformId) throw new Error('Platform wajib dipilih')
 
@@ -39,12 +87,15 @@ const createProjectJob = async ({ platformId, projectId, since, until}) => {
 
     if (!platform) throw new Error('Platform tidak ditemukan.')
 
+    const normalizedSchedule = normalizedScheduledAt(scheduledAt)
+
 
     const jobId = await jobRepository.createProjectJob({
             platformId,
             projectId,
             since,
-            until
+            until,
+            scheduledAt: normalizedScheduledAt
         })
 
     return jobRepository.findById(jobId)
@@ -53,7 +104,7 @@ const createProjectJob = async ({ platformId, projectId, since, until}) => {
 
 
 //untuk group job
-const createGroupJob = async ({ platformId, groupId, since, until }) => {
+const createGroupJob = async ({ platformId, groupId, since, until, scheduledAt = null, scheduledConcurrency = 10 }) => {
     // Validasi platform
     const parsedPlatformId = Number(platformId)
 
@@ -99,12 +150,29 @@ const createGroupJob = async ({ platformId, groupId, since, until }) => {
         throw new Error('Until harus lebih besar dari Since')
     }
 
+    //validasi jadwal
+    const normalizedSchedule = normalizeScheduledAt(scheduledAt)
+
+    //validasi concurrency
+    const parsedConcurrency = normalizeScheduledAt(scheduledConcurrency)
+
+    if (
+        !Number.isInteger(parsedConcurrency) ||
+        parsedConcurrency < 1 ||
+        parsedConcurrency > 50
+    ) {
+        throw new Error('Concurrency harus berupa angka 1 sampai 50')
+    }
+
+
     // Simpan Group Job
     const jobId = await jobRepository.createGroupJob({
         platformId: parsedPlatformId,
         groupId: parsedGroupId,
         since,
-        until
+        until,
+        scheduledAt: normalizedSchedule,
+        scheduledConcurrency: parsedConcurrency
     })
 
     return jobRepository.findById(jobId)
