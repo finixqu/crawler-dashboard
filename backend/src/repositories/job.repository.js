@@ -8,8 +8,8 @@ const createProjectJob = async ({ platformId, projectId, since, until, scheduled
             project_id,
             since,
             until,
-            scheduled_at
-            status,
+            scheduled_at,
+            status
             
         )
         VALUES (?, 'project', ?, ?, ?, ?, 'pending' )
@@ -27,7 +27,7 @@ const createProjectJob = async ({ platformId, projectId, since, until, scheduled
 }
 
 
-const createGroupJob = async ({ platformId, groupId, since, until, scheduledAt = null, scheduledConcurency = 10 }) => {
+const createGroupJob = async ({ platformId, groupId, since, until, scheduledAt = null, scheduledConcurrency = 10 }) => {
     const sql = `
         INSERT INTO crawler_jobs (
             platform_id,
@@ -36,10 +36,10 @@ const createGroupJob = async ({ platformId, groupId, since, until, scheduledAt =
             since,
             until,
             scheduled_at,
-            scheduled_concurency,
+            scheduled_concurrency,
             status
         )
-        VALUES (?, 'group', ?, ?, ?, ?, ? 'pending')
+        VALUES (?, 'group', ?, ?, ?, ?, ?, 'pending')
     `
 
     const [result] = await db.execute(sql, [
@@ -48,7 +48,7 @@ const createGroupJob = async ({ platformId, groupId, since, until, scheduledAt =
         since,
         until,
         scheduledAt,
-        scheduledConcurency
+        scheduledConcurrency
     ])
 
     return result.insertId
