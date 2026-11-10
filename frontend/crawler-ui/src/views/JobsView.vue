@@ -101,7 +101,12 @@ async function startJob(job) {
     actionError.value = ''
     startingJobIds.value.push(job.id)
 
-    const response = await jobServices.startCrawler(job.id)
+    const concurrency = job.mode === 'group'
+          ? Number(job.scheduled_concurrency || 10)
+          : undefined
+
+
+    const response = await jobServices.startCrawler(job.id, concurrency)
 
     if (!response.success) {
       throw new Error(response.message || 'Gagal memulai crawler.')
@@ -155,8 +160,8 @@ async function stopJob(job) {
 }
 
 function canStart(job) {
-  return Number(job.platform_id) === 1 &&
-    ['pending', 'failed'].includes(job.status)
+  return ['pending', 'failed'].includes(job.status) && !job.scheduled_at
+
 }
 
 function canStop(job) {
@@ -322,6 +327,8 @@ onMounted(loadJobs)
               <th class="px-5 py-3">Project / Group</th>
               <th class="px-5 py-3">Since</th>
               <th class="px-5 py-3">Until</th>
+              <th class="px-5 py-3">Scheduled At</th>
+              <th class="px-5 py-3">Concurrency</th>
               <th class="px-5 py-3">Status</th>
               <th class="px-5 py-3">Dibuat</th>
               <th class="px-5 py-3">Aksi</th>
@@ -356,6 +363,20 @@ onMounted(loadJobs)
 
               <td class="whitespace-nowrap px-5 py-4 text-slate-400">
                 {{ job.until || '-' }}
+              </td>
+
+              <!-- Scheduled At -->
+              <td class="whitespace-nowrap px-5 py-4 text-slate-400">
+                {{ job.scheduled_at ? formatDate(job.scheduled_at) : 'Langsung' }}
+              </td>
+
+              <!-- Concurrency -->
+              <td class="whitespace-nowrap px-5 py-4 text-slate-400">
+                {{
+                  job.mode === 'group' && job.scheduled_at
+                    ? job.scheduled_concurrency
+                    : '-'
+                }}
               </td>
 
               <td class="whitespace-nowrap px-5 py-4">

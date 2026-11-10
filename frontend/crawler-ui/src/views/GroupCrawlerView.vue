@@ -25,7 +25,8 @@ const form = ref({
     groupId: '',
     since: `${new Date().toISOString().slice(0, 10)}T00:00`,
     until: '',
-    concurrency: 10
+    concurrency: 10,
+    scheduledAt: ''
 })
 
 const groupProjectInfo = ref(null)
@@ -219,7 +220,9 @@ async function submitJob() {
             platformId: Number(form.value.platformId),
             groupId: Number(form.value.groupId),
             since: form.value.since,
-            until: form.value.until
+            until: form.value.until,
+            scheduledAt: form.value.scheduledAt,
+            scheduledConcurrency: form.value.concurrency
         })
 
         if (!createResponse.success || !createResponse.data?.id) {
@@ -230,23 +233,29 @@ async function submitJob() {
 
         createdJobId = createResponse.data.id
 
-        // 2. Jalankan Group Job.
-        const startResponse = await jobServices.startCrawler(
-            createdJobId,
-            concurrency
-        )
-
-        if (!startResponse.success) {
-            throw new Error(
-                startResponse.message || 'Gagal memulai Group Job.'
+        if(!form.value.scheduledAt){
+            // 2. Jalankan Group Job.
+            const startResponse = await jobServices.startCrawler(
+                createdJobId,
+                concurrency
             )
+
+            if (!startResponse.success) {
+                throw new Error(
+                    startResponse.message || 'Gagal memulai Group Job.'
+                )
+            }
+
+            // 3. Tampilkan hasil.
+            successMessage.value =
+                `Group Job #${createdJobId} berhasil dibuat dan dijalankan. ` +
+                `${groupProjectInfo.value.totalProject} project dengan concurrency ${concurrency}.`
+
+        }else {
+            successMessage.value =
+            `Job #${createdJobId} berhasil dijadwalkan pada ${form.value.scheduledAt.replace('T', ' ')} dengan concurrency ${concurrency}.`
         }
-
-        // 3. Tampilkan hasil.
-        successMessage.value =
-            `Group Job #${createdJobId} berhasil dibuat dan dijalankan. ` +
-            `${groupProjectInfo.value.totalProject} project dengan concurrency ${concurrency}.`
-
+        
     } catch (error) {
         console.error(error)
 
@@ -278,7 +287,8 @@ function resetForm() {
         groupId: '',
         since: '',
         until: '',
-        concurrency: 10
+        concurrency: 10,
+        scheduledAt: ''
     }
 
     groupProjectInfo.value = null
@@ -539,6 +549,32 @@ onMounted(() => {
                         Minimal 1 dan maksimal 50. Default: 10.
                     </p>
 
+                </div>
+
+                <!-- Scheduled At -->
+                <div>
+                    <label
+                        for="scheduledAt"
+                        class="mb-2 block text-sm font-medium text-slate-300"
+                    >
+                        Scheduled At
+                        <span class="ml-2 text-xs text-slate-500">
+                            (Opsional) <span class="text-blue-200 ml-24">AM: 00:00–11:59 dan PM: 12:00–23:59</span>
+                        </span>
+                    </label>
+
+                    <input
+                        id="scheduledAt"
+                        v-model="form.scheduledAt"
+                        type="datetime-local"
+                        :disabled="submitting"
+                        class="block w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+
+                    <p class="mt-2 text-xs text-slate-500">
+                        Kosongkan untuk menjalankan crawler langsung.
+                        Isi tanggal dan waktu untuk menjalankan crawler secara otomatis sesuai jadwal.
+                    </p>
                 </div>
 
 

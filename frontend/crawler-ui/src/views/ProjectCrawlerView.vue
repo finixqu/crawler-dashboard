@@ -21,7 +21,8 @@ const form = ref({
   platformId: '',
   projectId: '',
   since: `${new Date().toISOString().slice(0, 10)}T00:00`,
-  until: ''
+  until: '',
+  scheduledAt: ''
 })
 
 
@@ -99,6 +100,7 @@ async function submitJob() {
       projectId: form.value.projectId,
       since: form.value.since,
       until: form.value.until,
+      scheduledAt: form.value.scheduledAt || null
     })
 
     if (!createResponse.success || !createResponse.data?.id) {
@@ -109,19 +111,25 @@ async function submitJob() {
 
     createdJobId = createResponse.data.id
 
-    // 2. Jalankan crawler menggunakan ID job yang baru dibuat.
-    const startResponse = await jobServices.startCrawler(createdJobId)
+    if(!form.value.scheduledAt){
+         // 2. Jalankan jika tidak ada scheduled menggunakan ID job yang baru dibuat.
+        const startResponse = await jobServices.startCrawler(createdJobId)
 
-    if (!startResponse.success) {
-      throw new Error(
-        startResponse.message || 'Gagal memulai crawler.'
-      )
+        if (!startResponse.success) {
+          throw new Error(
+            startResponse.message || 'Gagal memulai crawler.'
+          )
+        }
+
+
+        // 3. Tampilkan hasil.
+        successMessage.value =
+          `Job #${createdJobId} berhasil dibuat dan crawler berhasil dimulai.`
+    } else {
+      successMessage.value =
+        `Job #${createdJobId} berhasil dibuat dan dijadwalkan pada ${form.value.scheduledAt.replace('T', ' ')}.`
     }
-
-    // 3. Tampilkan hasil.
-    successMessage.value =
-      `Job #${createdJobId} berhasil dibuat dan crawler berhasil dimulai.`
-
+ 
   } catch (error) {
     console.error(error)
 
@@ -147,7 +155,8 @@ function resetForm() {
     platformId: '',
     projectId: '',
     since: '',
-    until: ''
+    until: '',
+    scheduledAt: ''
   }
 
   errorMessage.value = ''
@@ -314,6 +323,32 @@ onMounted(() => {
 
           </div>
 
+        </div>
+
+        <!-- Scheduled At -->
+        <div>
+          <label
+            for="scheduledAt"
+            class="mb-2 block text-sm font-medium text-slate-300"
+          >
+            Scheduled At
+            <span class="ml-2 text-xs text-slate-500">
+              (Opsional) <span class="text-blue-200 ml-24">AM: 00:00–11:59 dan PM: 12:00–23:59</span>
+            </span>
+          </label>
+
+          <input
+            id="scheduledAt"
+            v-model="form.scheduledAt"
+            type="datetime-local"
+            :disabled="submitting"
+            class="block w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          />
+
+          <p class="mt-2 text-xs text-slate-500">
+            Kosongkan untuk menjalankan crawler langsung.
+            Isi tanggal dan waktu untuk menjalankan crawler secara otomatis sesuai jadwal.
+          </p>
         </div>
 
 
