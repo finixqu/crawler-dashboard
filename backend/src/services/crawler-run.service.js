@@ -369,63 +369,63 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
         // Script Bash untuk menjalankan dan menghentikan Group Job.
         const runnerScript = `#!/usr/bin/env bash
 
-set -o pipefail
+        set -o pipefail
 
-EXIT_FILE=${crawlerService.shellQuote(exitFile)}
-COMMANDS_FILE=${crawlerService.shellQuote(commandsFile)}
-LOG_FILE=${crawlerService.shellQuote(log.logPath)}
-JOB_ID=${crawlerService.shellQuote(job.id)}
+        EXIT_FILE=${crawlerService.shellQuote(exitFile)}
+        COMMANDS_FILE=${crawlerService.shellQuote(commandsFile)}
+        LOG_FILE=${crawlerService.shellQuote(log.logPath)}
+        JOB_ID=${crawlerService.shellQuote(job.id)}
 
-write_exit() {
-    printf '%s\\n' "$1" > "$EXIT_FILE"
-}
+        write_exit() {
+            printf '%s\\n' "$1" > "$EXIT_FILE"
+        }
 
-stop_group_containers() {
-    echo "Menghentikan container Group Job $JOB_ID..."
+        stop_group_containers() {
+            echo "Menghentikan container Group Job $JOB_ID..."
 
-    local empty_checks=0
+            local empty_checks=0
 
-    while [ "$empty_checks" -lt 3 ]; do
-        local container_ids
-        container_ids=$(docker ps -q --filter "label=crawler-group-job=$JOB_ID")
-        if [ -n "$container_ids" ]; then
-            empty_checks=0
-            docker stop --time 5 $container_ids || true
-        else
-            empty_checks=$((empty_checks + 1))
-            sleep 1
-        fi
-    done
+            while [ "$empty_checks" -lt 3 ]; do
+                local container_ids
+                container_ids=$(docker ps -q --filter "label=crawler-group-job=$JOB_ID")
+                if [ -n "$container_ids" ]; then
+                    empty_checks=0
+                    docker stop --time 5 $container_ids || true
+                else
+                    empty_checks=$((empty_checks + 1))
+                    sleep 1
+                fi
+            done
 
-    echo "Penghentian container Group Job selesai."
-}
+            echo "Penghentian container Group Job selesai."
+        }
 
-handle_signal() {
-    local signal="$1"
-    local exit_code=130
+        handle_signal() {
+            local signal="$1"
+            local exit_code=130
 
-    if [ "$signal" = "TERM" ]; then
-        exit_code=143
-    fi
+            if [ "$signal" = "TERM" ]; then
+                exit_code=143
+            fi
 
-    trap - INT TERM
+            trap - INT TERM
 
-    stop_group_containers
-    write_exit "$exit_code"
+            stop_group_containers
+            write_exit "$exit_code"
 
-    exit "$exit_code"
-}
+            exit "$exit_code"
+        }
 
-trap 'handle_signal INT' INT
-trap 'handle_signal TERM' TERM
+        trap 'handle_signal INT' INT
+        trap 'handle_signal TERM' TERM
 
-/usr/bin/parallel --line-buffer -j ${parsedConcurrency} < "$COMMANDS_FILE" 2>&1 | tee -a "$LOG_FILE"
+        /usr/bin/parallel --line-buffer -j ${parsedConcurrency} < "$COMMANDS_FILE" 2>&1 | tee -a "$LOG_FILE"
 
-exit_code=$?
+        exit_code=$?
 
-write_exit "$exit_code"
+        write_exit "$exit_code"
 
-exit "$exit_code"
+        exit "$exit_code"
 `
 
         await fs.writeFile(
