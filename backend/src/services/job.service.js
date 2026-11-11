@@ -366,6 +366,11 @@ const getGroupProjectLog = async (jobId, projectId) => {
 }
 
 
+// Mengambil statistik seluruh job berdasarkan status.
+const getJobStats = async () => {
+    return jobRepository.getStats()
+}
+
 export default {
     createProjectJob,
     createGroupJob,
@@ -374,5 +379,6 @@ export default {
     stopJobCrawler,
     getJobLog,
     getGroupProjectLogs,
-    getGroupProjectLog
+    getGroupProjectLog,
+    getJobStats
 }

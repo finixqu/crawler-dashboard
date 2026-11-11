@@ -329,35 +329,35 @@ const getStats = async () => {
         SELECT 
             COUNT(*) AS total,
 
-            COALESE(SUM(
+            COALESCE(SUM(
                 CASE
                     WHEN status IN ('starting', 'running')
                     THEN 1 ELSE 0
                 END
             ), 0) AS running,
 
-            COALESE(SUM(
+            COALESCE(SUM(
                 CASE
                     WHEN status IN ('pending')
                     THEN 1 ELSE 0
                 END
             ), 0) AS pending,
 
-            COALESE(SUM(
+            COALESCE(SUM(
                 CASE 
                     WHEN status IN ('success')
                     THEN 1 ELSE 0
                 END
             ), 0) AS success,
 
-            COALESE(SUM(
+            COALESCE(SUM(
                 CASE
                     WHEN status IN ('failed')
                     THEN 1 ELSE 0
                 END
             ), 0) AS failed,
 
-            COALESE(SUM(
+            COALESCE(SUM(
                 CASE
                     WHEN status IN ('stopped')
                     THEN 1 ELSE 0

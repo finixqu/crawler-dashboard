@@ -5,7 +5,7 @@ import jobController from '../controllers/job.controller.js'
 const router = express.Router()
 
 
-
+router.get('/stats', jobController.getJobStats)
 router.post('/project', jobController.createProjectJob)
 router.post('/group', jobController.createGroupJob)
 router.post('/:id/stop', jobController.stopJobCrawler)

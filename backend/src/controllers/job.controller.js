@@ -246,6 +246,28 @@ const getGroupProjectLog = async (req, res) => {
     }
 }
 
+// Mengambil statistik seluruh job berdasarkan status.
+const getJobStats = async (req, res) => {
+    try {
+        const stats = await jobService.getJobStats()
+
+        return res.json({
+            success: true,
+            message: 'Statistik job berhasil diambil',
+            data: stats
+        })
+
+    } catch (err) {
+        console.error(err)
+
+        return res.status(500).json({
+            success: false,
+            message: 'Gagal mengambil statistik job',
+            data: null
+        })
+    }
+}
+
 
 export default {
     createProjectJob,
@@ -254,6 +276,7 @@ export default {
     stopJobCrawler,
     getJobLog,
     getGroupProjectLogs,
-    getGroupProjectLog
+    getGroupProjectLog,
+    getJobStats
 }
     
