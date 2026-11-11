@@ -1,14 +1,5 @@
 import mysql from 'mysql2/promise'
 
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_NAME:', process.env.DB_NAME);
-console.log('DB_USER:', JSON.stringify(process.env.DB_USER));
-console.log(
-    'DB_PASSWORD tersedia:',
-    process.env.DB_PASSWORD !== undefined
-);
-
-
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT) || 3306,

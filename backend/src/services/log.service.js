@@ -3,7 +3,7 @@ import path from 'node:path'
 
 // import logRepository from '../repositories/log.repository.js'
 
-const LOG_BASE_PATH = '/home/ivohaki/backdate/crawler-dashboard/dashboard-logs'
+const LOG_BASE_PATH = process.env.LOG_BASE_PATH || path.resolve('dashboard-logs')
 const MAX_LOG_SIZE = 100 * 1024
 
 

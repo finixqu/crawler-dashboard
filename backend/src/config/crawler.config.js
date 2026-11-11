@@ -1,56 +1,56 @@
 export const crawlerConfig = {
-    tiktok : {
-        image: 'registry.infra.ivo.lan/r10/crawler/tiktok:52648a5',
-        config: '/home/ivohaki/backdate/tiktok-backdate/config-vpn-tiktok.toml',
+    tiktok: {
+        image: process.env.TIKTOK_IMAGE,
+        config: process.env.TIKTOK_CONFIG_PATH,
         configContainer: '/config-vpn-tiktok.toml',
         command: 'tiktok'
     },
 
-    youtube : {
-        image: 'registry.infra.ivo.lan/r10/crawler/youtube:c74db3ec',
-        config: '/home/ivohaki/backdate/youtube-backdate/config-vpn-youtube.toml',
+    youtube: {
+        image: process.env.YOUTUBE_IMAGE,
+        config: process.env.YOUTUBE_CONFIG_PATH,
         configContainer: '/config-vpn-youtube.toml',
         command: 'youtube',
         networkHost: false
     },
 
-    news : {
-        image: 'registry.infra.ivo.lan/r10/crawler/universal-news:0bf7825',
-        config: '/home/ivohaki/backdate/news-backdate/config-vpn-news.toml',
+    news: {
+        image: process.env.NEWS_IMAGE,
+        config: process.env.NEWS_CONFIG_PATH,
         configContainer: '/config-vpn-news.toml',
         command: 'news',
         networkHost: false
     },
 
-    facebook : {
-        image: 'registry.infra.ivo.lan/r10/crawler/facebook:1a31427',
-        config: '/home/ivohaki/backdate/facebook_crawler/config-vpn-facebook.toml',
+    facebook: {
+        image: process.env.FACEBOOK_IMAGE,
+        config: process.env.FACEBOOK_CONFIG_PATH,
         configContainer: '/config-vpn-facebook.toml',
         command: 'facebook_crawler_direct',
         networkHost: true
     },
 
-    instagram : {
-        image: 'registry.infra.ivo.lan/r10/crawler/instagram:3178a55',
-        config: '/home/ivohaki/backdate/ig-backdate/config-vpn-instagram.toml',
+    instagram: {
+        image: process.env.INSTAGRAM_IMAGE,
+        config: process.env.INSTAGRAM_CONFIG_PATH,
         configContainer: '/app/_private/config-vpn-instagram.toml',
         command: 'instagram',
         networkHost: true
     },
 
-    twitter : {
-        image: 'registry.infra.ivo.lan/r10/crawler/twitter:f1b006d',
-        config: '/home/ivohaki/backdate/twitter-task/config-vpn-twitter.toml',
+    twitter: {
+        image: process.env.TWITTER_IMAGE,
+        config: process.env.TWITTER_CONFIG_PATH,
         configContainer: '/config-vpn-twitter.toml',
         command: 'basic-worker basic-worker-direct',
         networkHost: false
     },
 
-    threads : {
-        image: 'registry.infra.ivo.lan/r10/crawler/threads:1cda3ec',
-        config: '/home/ivohaki/backdate/threads/config-threads.toml',
+    threads: {
+        image: process.env.THREADS_IMAGE,
+        config: process.env.THREADS_CONFIG_PATH,
         configContainer: '/config-threads.toml',
         command: 'threads-direct',
         networkHost: true
     }
-}
+};
