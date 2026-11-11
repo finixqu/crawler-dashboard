@@ -102,24 +102,23 @@ const getJobs = async (params = {}) => {
     return res.data
 }
 
+// Mengambil statistik seluruh job.
+const getJobStats = async () => {
+    const res = await api.get('/jobs/stats')
 
+    return res.data
+}
 
 export default {
-    // Project Job
     createProjectJob,
-
-    // Group Job
     createGroupJob,
     getGroups,
     getGroupProjects,
-
-    // Crawler Control
     startCrawler,
     stopCrawler,
-
-    // Monitoring
     getJobLog,
     getJobs,
     getGroupProjectLogs,
-    getGroupProjectLog
+    getGroupProjectLog,
+    getJobStats
 }

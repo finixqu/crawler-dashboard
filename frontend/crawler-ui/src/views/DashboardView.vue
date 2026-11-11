@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import getPlatforms from '@/services/platform.service.js'
 import jobServices from '@/services/job.services'
 
@@ -11,7 +11,17 @@ const jobsLoading = ref(false)
 
 const error = ref(null)
 const jobsError = ref(null)
-const statsJobs = ref([])
+
+// Statistik seluruh job dari backend.
+const stats = ref({
+  total: 0,
+  running: 0,
+  pending: 0,
+  success: 0,
+  failed: 0,
+  stopped: 0,
+  other: 0
+})
 
 // Pagination Recent Jobs
 const currentPage = ref(1)
@@ -52,31 +62,6 @@ let refreshTimer = null
 //agar data tidak bertumpuk
 let JobRequestProgres = ref(false)
 
-
-
-
-//jumlah data job dari backend
-const stats = computed(() => {
-  const allJobs = statsJobs.value
-
-  return {
-    running: allJobs.filter(
-      (job) => ['starting', 'running'].includes(job.status)
-    ).length,
-
-    success: allJobs.filter(
-      (job) => job.status === 'success'
-    ).length,
-
-    failed: allJobs.filter(
-      (job) => job.status === 'failed'
-    ).length,
-
-    pending: allJobs.filter(
-      (job) => job.status === 'pending'
-    ).length
-  }
-})
 
 
 //jumlah daftar platform
@@ -127,14 +112,8 @@ const loadJobs = async (silent = false) => {
         limit: pageLimit.value
       }),
 
-      jobServices.getJobs({
-        ...filters,
-        page: 1,
-        limit: 50
-      })
+      jobServices.getJobStats()
     ])
-
-
 
 
     if (!jobsResponse.success) {
@@ -146,7 +125,7 @@ const loadJobs = async (silent = false) => {
     }
 
     jobs.value = jobsResponse.data || []
-    statsJobs.value = statsResponse.data || []
+    stats.value = statsResponse.data || stats.value
 
     pagination.value = jobsResponse.pagination || pagination.value
 
@@ -535,6 +514,21 @@ onUnmounted(() => {
           Waiting jobs
         </p>
       </div>
+
+       <!-- Stopped -->
+      <div class="rounded-xl border border-slate-800 bg-slate-900 p-5">
+        <p class="text-sm text-slate-400">
+          Stopped
+        </p>
+
+        <p class="mt-2 text-3xl font-semibold text-white">
+          {{ stats.stopped }}
+        </p>
+
+        <p class="mt-1 text-xs text-amber-400">
+          Stopped jobs
+        </p>
+        </div>
 
     </div>
 
