@@ -291,7 +291,7 @@ const updateStopRequested = async (id) => {
     return result.affectedRows > 0
 }
 
-
+//menghitung total job
 const countAll = async ({ projectId, status}) => {
     let sql = `
         SELECT COUNT(*) AS total
@@ -323,6 +323,81 @@ const countAll = async ({ projectId, status}) => {
 }
 
 
+// Mengambil statistik seluruh job berdasarkan status.
+const getStats = async () => {
+    const sql = `
+        SELECT 
+            COUNT(*) AS total,
+
+            COALESE(SUM(
+                CASE
+                    WHEN status IN ('starting', 'running')
+                    THEN 1 ELSE 0
+                END
+            ), 0) AS running,
+
+            COALESE(SUM(
+                CASE
+                    WHEN status IN ('pending')
+                    THEN 1 ELSE 0
+                END
+            ), 0) AS pending,
+
+            COALESE(SUM(
+                CASE 
+                    WHEN status IN ('success')
+                    THEN 1 ELSE 0
+                END
+            ), 0) AS success,
+
+            COALESE(SUM(
+                CASE
+                    WHEN status IN ('failed')
+                    THEN 1 ELSE 0
+                END
+            ), 0) AS failed,
+
+            COALESE(SUM(
+                CASE
+                    WHEN status IN ('stopped')
+                    THEN 1 ELSE 0
+                END
+            ), 0) AS stopped,
+           
+            COALESCE(SUM(
+                CASE
+                    WHEN status NOT IN (
+                        'starting',
+                        'running',
+                        'pending',
+                        'success',
+                        'failed',
+                        'stopped'
+                    )
+                    THEN 1 ELSE 0
+                END
+            ), 0) AS other
+
+            FROM crawler_jobs
+    `
+
+    const [rows] = await db.execute(sql)
+
+    const stats = rows[0]
+
+    return {
+        total: Number(stats.total),
+        running: Number(stats.running),
+        pending: Number(stats.pending),
+        success: Number(stats.success),
+        failed: Number(stats.failed),
+        stopped: Number(stats.stopped),
+        other: Number(stats.other)
+    }
+}
+
+
+
 export default {
     createProjectJob,
     createGroupJob,
@@ -334,5 +409,6 @@ export default {
     findAll,
     countAll,
     findActiveJobs,
-    findDueScheduledJobs
+    findDueScheduledJobs,
+    getStats
 }
