@@ -47,7 +47,7 @@ export const crawlerConfig = {
     },
 
     threads : {
-        image: 'registry.infra.ivo.lan/r10/crawler/threads:22c1168',
+        image: 'registry.infra.ivo.lan/r10/crawler/threads:1cda3ec',
         config: '/home/ivohaki/backdate/threads/config-threads.toml',
         configContainer: '/config-threads.toml',
         command: 'threads-direct',

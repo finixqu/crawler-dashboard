@@ -1,7 +1,7 @@
 import fs from "node:fs/promises"
 
 import jobRepository from "../repositories/job.repository.js"
-import crawlerService from "./crawler.service.js"
+import crawlerCommandService from "./crawler.command.service.js"
 import groupService from "./group.service.js"
 import tmuxService from "./tmux.service.js"
 import logService from "./log.service.js"
@@ -167,7 +167,7 @@ const startProjectCrawler = async (jobId) => {
     }
 
     try {
-        const crawlerCommand = crawlerService.buildCrawlerCommand({
+        const crawlerCommand = crawlerCommandService.buildCrawlerCommand({
             platform: job.platform,
             projectId: job.project_id,
             since: job.since,
@@ -183,16 +183,16 @@ const startProjectCrawler = async (jobId) => {
             crawlerCommand.command,
             ...crawlerCommand.args
         ]
-            .map(crawlerService.shellQuote)
+            .map(crawlerCommandService.shellQuote)
             .join(" ")
 
         const exitFile = `${log.logPath}.exit.log`
 
         const commandDenganLog = [
             "set -o pipefail",
-            `${commandProses} 2>&1 | tee -a ${crawlerService.shellQuote(log.logPath)}`,
+            `${commandProses} 2>&1 | tee -a ${crawlerCommandService.shellQuote(log.logPath)}`,
             "exit_code=$?",
-            `printf '%s\\n' "$exit_code" > ${crawlerService.shellQuote(exitFile)}`,
+            `printf '%s\\n' "$exit_code" > ${crawlerCommandService.shellQuote(exitFile)}`,
             'exit "$exit_code"'
         ].join("; ")
 
@@ -298,7 +298,7 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
         // Membentuk perintah Docker dan log individual setiap project.
         const commands = await Promise.all(
             group.projectIds.map(async projectId => {
-                const crawlerCommand = crawlerService.buildCrawlerCommand({
+                const crawlerCommand = crawlerCommandService.buildCrawlerCommand({
                     platform: job.platform,
                     projectId,
                     since: job.since,
@@ -317,7 +317,7 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
                     crawlerCommand.command,
                     ...crawlerCommand.args
                 ]
-                    .map(crawlerService.shellQuote)
+                    .map(crawlerCommandService.shellQuote)
                     .join(" ")
 
                 // Lokasi log khusus project.
@@ -344,8 +344,8 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
                 // Setiap crawler mengirim output ke log individual.
                 const commandDenganLog =
                     `bash -o pipefail -c ${
-                        crawlerService.shellQuote(
-                            `${dockerCommand} 2>&1 | tee -a ${crawlerService.shellQuote(projectLogPath)}`
+                        crawlerCommandService.shellQuote(
+                            `${dockerCommand} 2>&1 | tee -a ${crawlerCommandService.shellQuote(projectLogPath)}`
                         )
                     }`
 
@@ -371,10 +371,10 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
 
         set -o pipefail
 
-        EXIT_FILE=${crawlerService.shellQuote(exitFile)}
-        COMMANDS_FILE=${crawlerService.shellQuote(commandsFile)}
-        LOG_FILE=${crawlerService.shellQuote(log.logPath)}
-        JOB_ID=${crawlerService.shellQuote(job.id)}
+        EXIT_FILE=${crawlerCommandService.shellQuote(exitFile)}
+        COMMANDS_FILE=${crawlerCommandService.shellQuote(commandsFile)}
+        LOG_FILE=${crawlerCommandService.shellQuote(log.logPath)}
+        JOB_ID=${crawlerCommandService.shellQuote(job.id)}
 
         write_exit() {
             printf '%s\\n' "$1" > "$EXIT_FILE"
@@ -435,7 +435,7 @@ const startGroupCrawler = async (jobId, concurrency = 10) => {
         )
 
         const commandDenganLog =
-            `bash ${crawlerService.shellQuote(runnerFile)}`
+            `bash ${crawlerCommandService.shellQuote(runnerFile)}`
 
         await jobRepository.updateStarting(
             job.id,
