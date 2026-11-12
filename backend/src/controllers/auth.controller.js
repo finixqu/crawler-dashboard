@@ -63,9 +63,18 @@ const login = async (req, res) => {
         })
 
     } catch (error) {
-        res.status(401).json({
+        console.error('[AUTH LOGIN ERROR]', error)
+
+        const isAuthError = [
+            'Username atau password salah',
+            'Username dan password wajib diisi'
+        ].includes(error.message)
+
+        res.status(isAuthError ? 401 : 500).json({
             success: false,
-            message: error.message
+            message: isAuthError
+                ? error.message
+                : 'Terjadi kesalahan pada server'
         })
     }
 }
