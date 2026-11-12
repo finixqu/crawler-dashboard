@@ -1,11 +1,12 @@
 import authService from '../services/auth.service.js'
 
+//	Menentukan konfigurasi berdasarkan environment
 const isProduction = process.env.NODE_ENV === 'production'
 
 const accessCookieOptions = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'strict',
+    sameSite: 'strict', //Mengatur pengiriman cookie dalam konteks lintas situs
     path: '/api',
     maxAge: 15 * 60 * 1000
 }
@@ -99,8 +100,13 @@ const refresh = async (req, res) => {
     }
 }
 
+
+//representas pengguna yang sedang login,,,
 const me = async (req, res) => {
     try {
+
+        // Mengambil informasi pengguna terbaru dari database
+
         const user = await authService.getCurrentUser(req.user.id)
 
         res.json({
@@ -118,7 +124,20 @@ const me = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        await authService.logout(req.user.sessionId)
+        const refreshToken = req.cookies?.refresh_token
+
+        if (refreshToken) {
+            try {
+                const sessionId =
+                    authService.getSessionIdFromRefreshToken(refreshToken)
+
+                await authService.logout(sessionId)
+
+            } catch {
+                // Token tidak valid atau sudah kedaluwarsa.
+                // Cookie tetap akan dibersihkan.
+            }
+        }
 
         clearAuthCookies(res)
 

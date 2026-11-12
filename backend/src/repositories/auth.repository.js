@@ -1,6 +1,6 @@
 import db from '../config/database.js'
 
-const findUserByUsername = async (username) {
+const findUserByUsername = async (username) => {
     const sql = `
         SELECT id, username, password_hash, is_active
         FROM users
