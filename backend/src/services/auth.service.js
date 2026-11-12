@@ -5,10 +5,16 @@ import crypto from 'node:crypto'
 import authRepository from '../repositories/auth.repository.js'
 
 const ACCESS_EXPIRES = process.env.ACCESS_EXPIRES || '15m'
-const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || '7m'
+const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || '7d'
 
 
+const ACCESS_SECRET = process.env.AUTH_ACCESS_SECRET
+const REFRESH_SECRET = process.env.AUTH_REFRESH_SECRET
+
+//yang menerbitkan token
 const ISSUER = 'crawler-dashboard'
+
+//tujuan token
 const AUDIENCE = 'crawler-dashboard-client'
 
 //cek scretjwt
@@ -25,7 +31,7 @@ const ensureSecrets = () => {
 //lakukan hashToken dengan bcrypt sha
 const hashToken = (token) => {
     return crypto
-            .createCipheriv('sha256')
+            .createHash('sha256')
             .update(token)
             .digest('hex')
 }
@@ -68,6 +74,10 @@ const createRefreshToken = (user, sessionId) => {
 }
 
 
+const getRefreshExpiry = () => {
+    return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+}
+
 //untuk verifikasi login 
 const login = async (username, password) => {
 
@@ -105,10 +115,14 @@ const login = async (username, password) => {
         throw new Error('Username atau password salah')
     }
 
-    //untuk mencatat sesilogin
+    //untuk mencatat sesilogin, menghasilkan uuid secara acak
     const sessionId = crypto.randomUUID()
 
+
+    //membuat jwt untuk akun yang login
     const accessToken = createAccessToken(user, sessionId)
+
+    //refresh token
     const refreshToken = createRefreshToken(user, sessionId)
 
     //simpan sesi Login
@@ -123,6 +137,7 @@ const login = async (username, password) => {
 
     await authRepository.updateLastLogin(user.id)
 
+    //mengembailkan hasil login
     return {
         accessToken,
         refreshToken,
@@ -133,6 +148,11 @@ const login = async (username, password) => {
     }
 }
 
+const logout = async (sessionId) => {
+    if (sessionId) {
+        await authRepository.revokeSession(sessionId)
+    }
+}
 
 //verifikasi token
 const verifyAccessToken = (token) => {
@@ -253,9 +273,6 @@ const getSessionIdFromRefreshToken = (token) => {
     return payload.sid
 }
 
-const isSessionActive = async (sessionId, userId) => {
-    return authRepository.isSessionActive(sessionId, userId)
-}
 
 export default {
     login,
