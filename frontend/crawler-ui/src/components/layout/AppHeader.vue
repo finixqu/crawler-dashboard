@@ -1,5 +1,23 @@
 <script setup>
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
+
 const emit = defineEmits(['toggle-sidebar'])
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const handleLogout = async () => {
+    const confirmed = window.confirm(
+        'Apakah Anda yakin ingin logout?'
+    )
+
+    if (!confirmed) return
+
+    await authStore.logout()
+
+    router.replace('/login')
+}
 </script>
 
 <template>
@@ -39,17 +57,37 @@ const emit = defineEmits(['toggle-sidebar'])
     </div>
 
 
-    <div
-      class="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5"
-    >
+    <div class="flex items-center gap-3">
 
-      <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+    <div class="hidden items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 sm:flex">
 
-      <span class="text-xs text-slate-300">
-        System Online
-      </span>
+        <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+
+        <span class="text-xs text-slate-300">
+            System Online
+        </span>
 
     </div>
+
+    <div class="hidden text-right sm:block">
+        <p class="text-xs font-medium text-white">
+            {{ authStore.user?.username }}
+        </p>
+
+        <p class="text-xs text-slate-500">
+            Administrator
+        </p>
+    </div>
+
+    <button
+        type="button"
+        class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
+        @click="handleLogout"
+    >
+        Logout
+    </button>
+
+</div>
 
   </header>
 </template>
