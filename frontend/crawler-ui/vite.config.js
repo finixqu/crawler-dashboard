@@ -19,10 +19,14 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
+    allowedHosts: [
+      'commissions-rank-moore-expansys.trycloudflare.com',
+      'summary-apollo-brought-thinking.trycloudflare.com'
+    ],
 
     proxy: {
       '/api': {
-        target: 'http//:127.0.0.1:3000',
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true,
       },
     },

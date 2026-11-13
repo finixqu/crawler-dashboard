@@ -686,7 +686,7 @@ onUnmounted(() => {
               </th>
 
               <th class="px-5 py-3 font-medium">
-                Project ID
+                Project ID / GROUP
               </th>
 
               <th class="px-5 py-3 font-medium">
